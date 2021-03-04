@@ -40,10 +40,11 @@ insight_lessons <- glm(insight~number_lessons+math_edu, data=insight_bin,family=
 Anova(insight_lessons, type="III")
 
 ################################### Relation between insight report and performance ####################################################
-
+#### data frames for insight and introspection vs performance 
 intro_perf <- merge(tests, intro_mean)
 insight_perf <- merge(tests,insight_bin)
 intromeaninsight <- merge(intro_perf, insight_bin)
+
 
 perf_ins <- mixed(acc~insight*test_condition+ (1|participant), data=insight_perf,family=binomial,check_contrasts=FALSE,method="LRT")
 
