@@ -41,6 +41,10 @@ Anova(insight_lessons, type="III")
 
 ################################### Relation between insight report and performance ####################################################
 
+intro_perf <- merge(tests, intro_mean)
+insight_perf <- merge(tests,insight_bin)
+intromeaninsight <- merge(intro_perf, insight_bin)
+
 perf_ins <- mixed(acc~insight*test_condition+ (1|participant), data=insight_perf,family=binomial,check_contrasts=FALSE,method="LRT")
 
 ### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on accuracy by test condition
@@ -63,9 +67,6 @@ confint(contrast(emmeans(perf_ins_cov,~insight|test_condition,cov.reduce=F), "re
 
 ################################### Relation between insight experiences and introspective judgments of confidence #################################################
 
-intro_perf <- merge(tests, intro_mean)
-insight_perf <- merge(tests,insight_bin)
-intromeaninsight <- merge(intro_perf, insight_bin)
 
 ################ Correlation tests ######################################################################################################
 
