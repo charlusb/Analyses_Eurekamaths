@@ -258,7 +258,6 @@ ggsave("Numb_lessons_eff_on_Insight.png")
 ##### Insight relation with accuracy in Test2 condition straight  non planar  lines, predictions and corrected raw datas
 ##### corrected for math edu, number of lessons  and introspection, taking mean level of each factor for correction
 
-
 ins_plot=aggregate(acc~participant+insight+number_lessons+test_condition+math_edu+introspection, data=subset(intromeaninsight, test_condition=="Test2_straight_nonplanar"), FUN=mean)
 ins_plot$acclogit=logit(ins_plot$acc, adjust=0.01)
 ins_plot$coeffniv[ins_plot$test_condition=="Test2_straight_nonplanar"]=summary(perf_intros_cov)$coefficients[34,1]
@@ -285,9 +284,9 @@ insac <- ggplot(aes(x=insight,y=prob),data=predict_ins)+
   facet_wrap(~test_condition, ncol=1)+
   theme_classic()+
   geom_point(size=3)+
-  scale_x_discrete(limits=c(0,1))
+  scale_x_discrete(limits=c(0,1), labels=c("No insight", "insight"))
 insac <-themetiny(insac)
-insac <- insac + ggtitle("Insight on Straight non planar lines") + xlab("Insight")+ylab("Accuracy")
+insac <- insac + ggtitle("Insight relation with straight non planar lines") + xlab("Insight")+ylab("Accuracy")
 dev.new(width=7,height=4)
 insac
 
@@ -325,10 +324,10 @@ introac <- ggplot(aes(x=introspection, y=prob),data=predict_intro)+
 	geom_point(size=3)
 introac <- mycolors(introac)
 introac <-themetiny(introac)
-introac <- introac + ggtitle("Introspection on Straight non planar lines") + xlab("Mean Introspection")+ylab("Accuracy")
+introac <- introac + ggtitle("Confidence in understanding relation with straight non planar lines") + xlab("Mean confidence")+ylab("Accuracy")
 introac <- introac + guides(color=guide_legend("Insight"))   
 dev.new(width=7,height=4)
 introac
      
-ggsave("intro_difOui.jpg") 
+ggsave("intro_Test2_straight_nonplanar.jpg") 
 
