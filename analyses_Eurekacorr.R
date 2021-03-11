@@ -1,4 +1,3 @@
-
 library(afex)
 library(emmeans)
 library(ppcor)
@@ -158,6 +157,36 @@ conf_trends_cov <- emtrends(perf_confs_cov,var="confidence",specs=c("test_condit
 summary(conf_trends_cov,infer=TRUE,null=0, adjust="holm")
 
 
+################ supplementary analyses #############################################################################
+
+############### repartitions of insights by position in the experiment ###########################################################
+
+table(subset(insight, response==1)$position)
+
+############## Number of lessons effect on questions about parallel lines in test3 #################################
+
+parallel <- read.table("parallel_perf.csv", sep=";", header=T)
+parallel <- subset(parallel, number_lessons !=0 & included==1)
+#### counting as correct only those who give correct answers to both 
+para <- aggregate(acc~participant+number_lessons+math_edu+included, data=parallel, FUN=min)
+
+###### mean accuracy ###
+nrow(subset(para, acc==1)/56
+
+
+paral_lessons <- glm(acc~number_lessons+math_edu, data=parallel, family=binomial)
+summary(paral_lessons)
+para_trends <- summary(emmeans(paral_lessons,~number_lessons, cov.reduce=F), infer=T)
+
+
+###############  Number of lessons effect on confidence #############################################################
+
+contrasts(confidence$measurement) = "contr.sum"
+conf_lessons <- mixed(confidence~number_lessons*measurement + math_edu*measurement+(1|participant), data=confidence,check_contrasts=F)
+conf_lessons
+
+slopes_conf <- emtrends(conf_lessons,var="number_lessons",specs=c("measurement"))
+summary(slopes_conf,infer=T,null=0, adjust="holm")
 ######################################################################################################################
 ########### Figures  #################################################################################################
 ######################################################################################################################
