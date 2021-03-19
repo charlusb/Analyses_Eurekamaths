@@ -167,13 +167,23 @@ table(subset(insight, response==1)$position)
 
 parallel <- read.table("parallel_perf.csv", sep=";", header=T)
 parallel <- subset(parallel, number_lessons !=0 & included==1)
+
+### ICI j'aurais fait différemment, simplement un nombre de réponses correctes
+para <- aggregate(acc~participant+number_lessons+math_edu, data=parallel, subset=included==1, FUN=mean)
+mean(para$acc)
+### 45.5% correct
+
 #### counting as correct only those who give correct answers to both 
 para <- aggregate(acc~participant+number_lessons+math_edu+included, data=parallel, FUN=min)
 
 ###### mean accuracy ###
-nrow(subset(para, acc==1)/56
+nrow(subset(para, acc==1))/56
 
+### ici j'utiliserais plutôt glmer car on a 2 réponses par participant
+paral_lessons <- glmer(acc~number_lessons+math_edu+(1|participant), data=parallel, family=binomial)
+summary(paral_lessons)
 
+## et donc supprimer ceci
 paral_lessons <- glm(acc~number_lessons+math_edu, data=parallel, family=binomial)
 summary(paral_lessons)
 para_trends <- summary(emmeans(paral_lessons,~number_lessons, cov.reduce=F), infer=T)
@@ -187,6 +197,8 @@ conf_lessons
 
 slopes_conf <- emtrends(conf_lessons,var="number_lessons",specs=c("measurement"))
 summary(slopes_conf,infer=T,null=0, adjust="holm")
+
+
 ######################################################################################################################
 ########### Figures  #################################################################################################
 ######################################################################################################################
@@ -211,9 +223,9 @@ legend.text=element_text(size=10))
 
 
 ###### Effect of number of lessons on performance  ###############
-####### predictions of model plus raw datas corrected for math edu 
+####### predictions of model + individual performance corrected for math edu 
 
-## No need to set level of math edu here, emmeans already set at mean level in  model
+## No need to set level of math edu here, emmeans already sets at mean level in  model
 predictions <- data.frame(emmeans(lessons_perf,specs=c("number_lessons","test_condition"), cov.reduce=F, type="response"))
 
 predictions$test_condition= factor(predictions$test_condition, levels=c('Test1_non_circles','Test1_great_circles','Test1_small_circles','Test2_nonstraight_nonplanar',
@@ -223,9 +235,9 @@ predictions=predictions[order(predictions$test_condition),]
 all_plot=aggregate(acc~participant+number_lessons+test_condition+math_edu, data=tests, FUN=mean)
 all_plot$acclogit=logit(all_plot$acc, adjust=0.01)
 all_plot$acclogitcor=all_plot$acclogit-((all_plot$math_edu-3.9)*(summary(lessons_perf)$coefficients[11,1]))
+all_plot$coeffniv[all_plot$test_condition=="Test1_non_circles"]=0
 all_plot$coeffniv[all_plot$test_condition=="Test1_great_circles"]=summary(lessons_perf)$coefficients[20,1]
 all_plot$coeffniv[all_plot$test_condition=="Test1_small_circles"]=summary(lessons_perf)$coefficients[21,1]
-all_plot$coeffniv[all_plot$test_condition=="Test1_non_circles"]=3.9
 all_plot$coeffniv[all_plot$test_condition=="Test2_nonstraight_nonplanar"]=summary(lessons_perf)$coefficients[22,1]
 all_plot$coeffniv[all_plot$test_condition=="Test2_nonstraight_planar"]=summary(lessons_perf)$coefficients[23,1]
 all_plot$coeffniv[all_plot$test_condition=="Test2_straight_nonplanar"]=summary(lessons_perf)$coefficients[24,1]
@@ -237,30 +249,69 @@ all_plot$acclogitcor=exp(all_plot$acclogitcor)/(1+exp(all_plot$acclogitcor))
 
 
 all_plot$test_condition= factor(all_plot$test_condition, levels=c('Test1_non_circles','Test1_great_circles','Test1_small_circles','Test2_nonstraight_nonplanar',
-'Test2_straight_planar','Test2_nonstraight_planar','Test2_straight_nonplanar','Test3_other_surfaces', 'Test3_sphere'), order=T )
+'Test2_straight_planar','Test2_nonstraight_planar','Test2_straight_nonplanar','Test3_sphere', 'Test3_other_surfaces'), order=T )
 all_plot=all_plot[order(all_plot$test_condition),]
 
-
-perf <- ggplot(aes(x=number_lessons,y=prob),data=predictions)+
-  geom_point(data=all_plot,aes(y=acclogitcor),  color="grey50",alpha=1/5, size=1.5,position=position_jitter(w=0.3,h=0))+
+condtest1 = c("Test1_non_circles","Test1_small_circles","Test1_great_circles")
+perf_test1 <- ggplot(aes(x=number_lessons,y=prob),data=subset(predictions,test_condition%in%condtest1))+
+  geom_point(data=subset(all_plot,test_condition%in%condtest1),aes(y=acclogitcor),  color="grey50",alpha=1/5, size=1.5,position=position_jitter(w=0.3,h=0))+
   geom_errorbar(aes(ymin=asymp.LCL,ymax=asymp.UCL,color=factor(number_lessons)),size=0.8)+
   geom_line(size=0.5)+
-  facet_wrap( ~ test_condition)+
+  facet_grid(. ~ test_condition)+
   geom_point(size=1.5,aes(color=factor(number_lessons)))+
   theme_classic()+
+  theme(aspect.ratio=2.5)+
   scale_x_discrete(breaks=c(1,3,5,7),limits=c("1","", "3", "","5", "","7"))
-perf <- perf + ggtitle("Effect of the number of lessons on performance") + xlab("Number of lessons")+ylab("Accuracy")
-perf <- perf + guides(color=guide_legend("Number of lessons"))
-perf <-mycolors(perf)
-perf <-themetiny(perf)
-dev.new(width=8,height=10)
-perf
+perf_test1 <- perf_test1 + ggtitle("Effect of the number of lessons on performance") + xlab("Number of lessons")+ylab("Accuracy")
+perf_test1 <- perf_test1 + guides(color=guide_legend("Number of lessons"))
+perf_test1 <-mycolors(perf_test1)
+perf_test1 <-themetiny(perf_test1)
+dev.new(width=10,height=4)
+perf_test1
 
-ggsave("number_lessons_on_perf.png")
+ggsave("number_lessons_on_perf_test1.png")
+
+condtest2 = c("Test2_nonstraight_nonplanar","Test2_straight_planar","Test2_nonstraight_planar","Test2_straight_nonplanar")
+perf_test2 <- ggplot(aes(x=number_lessons,y=prob),data=subset(predictions,test_condition%in%condtest2))+
+  geom_point(data=subset(all_plot,test_condition%in%condtest2),aes(y=acclogitcor),  color="grey50",alpha=1/5, size=1.5,position=position_jitter(w=0.3,h=0))+
+  geom_errorbar(aes(ymin=asymp.LCL,ymax=asymp.UCL,color=factor(number_lessons)),size=0.8)+
+  geom_line(size=0.5)+
+  facet_grid( . ~ test_condition)+
+  geom_point(size=1.5,aes(color=factor(number_lessons)))+
+  theme_classic()+
+  theme(aspect.ratio=2.5)+
+  scale_x_discrete(breaks=c(1,3,5,7),limits=c("1","", "3", "","5", "","7"))
+perf_test2 <- perf_test2 + ggtitle("Effect of the number of lessons on performance") + xlab("Number of lessons")+ylab("Accuracy")
+perf_test2 <- perf_test2 + guides(color=guide_legend("Number of lessons"))
+perf_test2 <-mycolors(perf_test2)
+perf_test2 <-themetiny(perf_test2)
+dev.new(width=10,height=4)
+perf_test2
+
+ggsave("number_lessons_on_perf_test2.png")
+
+condtest3 = c("Test3_sphere","Test3_other_surfaces")
+perf_test3 <- ggplot(aes(x=number_lessons,y=prob),data=subset(predictions,test_condition%in%condtest3))+
+  geom_point(data=subset(all_plot,test_condition%in%condtest3),aes(y=acclogitcor),  color="grey50",alpha=1/5, size=1.5,position=position_jitter(w=0.3,h=0))+
+  geom_errorbar(aes(ymin=asymp.LCL,ymax=asymp.UCL,color=factor(number_lessons)),size=0.8)+
+  geom_line(size=0.5)+
+  facet_grid( . ~ test_condition)+
+  geom_point(size=1.5,aes(color=factor(number_lessons)))+
+  theme_classic()+
+  theme(aspect.ratio=2.5)+
+  scale_x_discrete(breaks=c(1,3,5,7),limits=c("1","", "3", "","5", "","7"))
+perf_test3 <- perf_test3 + ggtitle("Effect of the number of lessons on performance") + xlab("Number of lessons")+ylab("Accuracy")
+perf_test3 <- perf_test3 + guides(color=guide_legend("Number of lessons"))
+perf_test3 <-mycolors(perf_test3)
+perf_test3 <-themetiny(perf_test3)
+dev.new(width=10,height=4)
+perf_test3
+
+ggsave("number_lessons_on_perf_test3.png")
 
 ###########################################################################################################################
 ##### Number of lessons effect on insight #################################################################################
-####### predictions of model plus raw datas corrected for math edu 
+####### predictions of model + individual responses corrected for math edu 
 
 ins_plot <- aggregate(insight~participant+number_lessons+math_edu, data=insight_bin, FUN=mean)                                                                       
 ins_plot$inslogit <- logit(ins_plot$insight, adjust=0.01)
@@ -291,7 +342,7 @@ ggsave("Numb_lessons_eff_on_Insight.png")
 
 
 ############################################################################################################################
-##### Insight relation with accuracy in Test2 condition straight  non planar  lines, predictions and individual performance
+##### Insight relation with accuracy in Test2 condition straight  non planar  lines, predictions + individual performance
 ##### corrected for math edu, number of lessons  and confidence
 
 ins_plot=aggregate(acc~participant+insight+number_lessons+test_condition+math_edu+confidence, data=subset(confmeaninsight, test_condition=="Test2_straight_nonplanar"), FUN=mean)
@@ -326,11 +377,11 @@ insac <- insac + ggtitle("Insight relation with straight non planar lines") + xl
 dev.new(width=7,height=4)
 insac
 
-ggsave("insight_on_nonplanar_straight_lines.jpg")
+ggsave("insight_Test2_straight_nonplanar.jpg")
 
 
 
-#####  Confidence relation with accuracy in condition Test2 non planar straigth lines, predictions and corrected raw datas, same corrections than insight figure
+#####  Confidence relation with accuracy in condition Test2 non planar straigth lines, predictions + individual performance with same corrections as figure above
 
 conf_plot=aggregate(acc~participant+confidence+number_lessons+test_condition+math_edu+insight, data=subset(confmeaninsight, test_condition=="Test2_straight_nonplanar"), FUN=mean)
 conf_plot$acclogit=logit(conf_plot$acc, adjust=0.01)
