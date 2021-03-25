@@ -154,7 +154,7 @@ confint(contrast(emmeans(perf_confs_cov,~insight|test_condition,cov.reduce=F), "
 ### Effect of confidence (linear trends) on accuracy in each  test condition 
 
 conf_trends_cov <- emtrends(perf_confs_cov,var="confidence",specs=c("test_condition"))
-summary(conf_trends_cov,infer=TRUE,null=0, adjust="holm")
+summary(conf_trends_cov,infer=T,null=0, adjust="holm")
 
 
 ################ supplementary analyses #############################################################################
@@ -168,25 +168,14 @@ table(subset(insight, response==1)$position)
 parallel <- read.table("parallel_perf.csv", sep=";", header=T)
 parallel <- subset(parallel, number_lessons !=0 & included==1)
 
-### ICI j'aurais fait différemment, simplement un nombre de réponses correctes
+#### pourcentage of correct answers
 para <- aggregate(acc~participant+number_lessons+math_edu, data=parallel, subset=included==1, FUN=mean)
 mean(para$acc)
 ### 45.5% correct
 
-#### counting as correct only those who give correct answers to both 
-para <- aggregate(acc~participant+number_lessons+math_edu+included, data=parallel, FUN=min)
-
-###### mean accuracy ###
-nrow(subset(para, acc==1))/56
-
-### ici j'utiliserais plutôt glmer car on a 2 réponses par participant
+#### effect of number of lessons on parallel's answers
 paral_lessons <- glmer(acc~number_lessons+math_edu+(1|participant), data=parallel, family=binomial)
 summary(paral_lessons)
-
-## et donc supprimer ceci
-paral_lessons <- glm(acc~number_lessons+math_edu, data=parallel, family=binomial)
-summary(paral_lessons)
-para_trends <- summary(emmeans(paral_lessons,~number_lessons, cov.reduce=F), infer=T)
 
 
 ###############  Number of lessons effect on confidence #############################################################
@@ -371,7 +360,8 @@ insac <- ggplot(aes(x=insight,y=prob),data=predict_ins)+
   facet_wrap(~test_condition, ncol=1)+
   theme_classic()+
   geom_point(size=3)+
-  scale_x_discrete(labels=c("No insight", "insight"))
+    scale_x_discrete(limits=c(0,1), labels=c("No insight", "insight"))
+  ## scale_x_discrete(labels=c("0"="No insight", "1"="Insight"))
 insac <-themetiny(insac)
 insac <- insac + ggtitle("Insight relation with straight non planar lines") + xlab("Insight")+ylab("Accuracy")
 dev.new(width=7,height=4)
