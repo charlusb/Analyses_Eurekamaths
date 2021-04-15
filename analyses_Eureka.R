@@ -205,8 +205,8 @@ themetiny=function(ggobject){
 
 ggobject+
 theme(plot.title = element_text(face="bold",size=15,hjust = 0.5))+
-theme(axis.text=element_text(size=6,face="bold"),                                                                                                                                                 
-axis.title=element_text(size=8,face="bold"),
+theme(axis.text=element_text(size=9,face="bold"),                                                                                                                                                 
+axis.title=element_text(size=10,face="bold"),
 legend.text=element_text(size=10))
 }
 
@@ -218,7 +218,7 @@ legend.text=element_text(size=10))
 predictions <- data.frame(emmeans(lessons_perf,specs=c("number_lessons","test_condition"), cov.reduce=F, type="response"))
 
 predictions$test_condition= factor(predictions$test_condition, levels=c('Test1_non_circles','Test1_great_circles','Test1_small_circles','Test2_nonstraight_nonplanar',
-'Test2_straight_planar','Test2_nonstraight_planar','Test2_straight_nonplanar','Test3_other_surfaces', 'Test3_sphere'), order=T )
+'Test2_straight_planar','Test2_nonstraight_planar','Test2_straight_nonplanar', 'Test3_sphere', 'Test3_other_surfaces'), order=T )
 predictions=predictions[order(predictions$test_condition),]
 
 all_plot=aggregate(acc~participant+number_lessons+test_condition+math_edu, data=tests, FUN=mean)
@@ -288,7 +288,9 @@ perf_test3 <- ggplot(aes(x=number_lessons,y=prob),data=subset(predictions,test_c
   geom_point(size=1.5,aes(color=factor(number_lessons)))+
   theme_classic()+
   theme(aspect.ratio=2.5)+
-  scale_x_discrete(breaks=c(1,3,5,7),limits=c("1","", "3", "","5", "","7"))
+  scale_x_discrete(breaks=c(1,3,5,7),limits=c("1","", "3", "","5", "","7"))+
+  scale_y_continuous( limits=c(0,1))
+  
 perf_test3 <- perf_test3 + ggtitle("Effect of the number of lessons on performance") + xlab("Number of lessons")+ylab("Accuracy")
 perf_test3 <- perf_test3 + guides(color=guide_legend("Number of lessons"))
 perf_test3 <-mycolors(perf_test3)
@@ -319,9 +321,9 @@ ins <- ggplot(aes(x=number_lessons,y=prob),data=predict_insight)+
   scale_x_discrete(breaks=c(1,3,5,7),limits=c("1","", "3", "","5", "","7"))+     
   geom_point(size=3,aes(color=factor(number_lessons)))+
   theme_classic()
-ins <- ins + ggtitle("Number of lessons effect on insight reports") + xlab("Number of lessons")+ylab("% insight reports")
+ins <- ins + ggtitle("Effect of the number of lessons on insight report") + xlab("Number of lessons")+ylab("% insight reports")
 ins <- ins + guides(color=guide_legend("Number of lessons"))
-ins <- ins + theme(plot.title = element_text(face="bold",size=18,hjust = 0.5))
+ins <- ins + theme(plot.title = element_text(face="bold",size=15,hjust = 0.5))
 ins <- themetiny(ins)
 ins <-mycolors(ins)
 dev.new(width=7,height=4)
@@ -363,8 +365,8 @@ insac <- ggplot(aes(x=insight,y=prob),data=predict_ins)+
     scale_x_discrete(limits=c(0,1), labels=c("No insight", "insight"))
   ## scale_x_discrete(labels=c("0"="No insight", "1"="Insight"))
 insac <-themetiny(insac)
-insac <- insac + ggtitle("Insight relation with straight non planar lines") + xlab("Insight")+ylab("Accuracy")
-dev.new(width=7,height=4)
+insac <- insac + ggtitle("Insight") + xlab("Insight")+ylab("Accuracy")
+dev.new(width=7*0.65,height=4*0.65)
 insac
 
 ggsave("insight_Test2_straight_nonplanar.jpg")
@@ -401,9 +403,9 @@ confac <- ggplot(aes(x=confidence, y=prob),data=predict_conf)+
 	geom_point(size=3)
 confac <- mycolors(confac)
 confac <-themetiny(confac)
-confac <- confac + ggtitle("Confidence in understanding relation with straight non planar lines") + xlab("Mean confidence")+ylab("Accuracy")
+confac <- confac + ggtitle("Confidence") + xlab("Mean confidence")+ylab("Accuracy")
 confac <- confac + guides(color=guide_legend("Insight"))   
-dev.new(width=7,height=4)
+dev.new(width=7*0.65,height=4*0.65)
 confac
      
 ggsave("conf_Test2_straight_nonplanar.jpg") 
