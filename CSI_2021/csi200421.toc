@@ -1,0 +1,5 @@
+\babel@toc {french}{}
+\beamer@sectionintoc {1}{Introduction}{2}{0}{1}
+\beamer@sectionintoc {2}{Plan of the thesis}{10}{0}{2}
+\beamer@sectionintoc {3}{ Does euclidean intuition shape the representation of straight line? }{13}{0}{3}
+\beamer@sectionintoc {4}{ The experimental session}{16}{0}{4}

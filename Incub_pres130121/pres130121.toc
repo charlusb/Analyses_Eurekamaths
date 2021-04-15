@@ -1,0 +1,10 @@
+\babel@toc {french}{}
+\beamer@sectionintoc {1}{Introduction}{2}{0}{1}
+\beamer@subsectionintoc {1}{1}{Main question}{12}{0}{1}
+\beamer@sectionintoc {2}{Goals of the study}{16}{0}{2}
+\beamer@sectionintoc {3}{Learning situation}{23}{0}{3}
+\beamer@sectionintoc {4}{Performance measures}{33}{0}{4}
+\beamer@subsectionintoc {4}{1}{Introspection measures}{41}{0}{4}
+\beamer@sectionintoc {5}{Analyses}{42}{0}{5}
+\beamer@sectionintoc {6}{Conclusion}{60}{0}{6}
+\beamer@sectionintoc {7}{Open questions}{77}{0}{7}
