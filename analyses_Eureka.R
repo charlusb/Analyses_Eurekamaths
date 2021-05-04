@@ -176,7 +176,7 @@ mean(para$acc)
 #### effect of number of lessons on parallel's answers
 paral_lessons <- glmer(acc~number_lessons+math_edu+(1|participant), data=parallel, family=binomial)
 summary(paral_lessons)
-
+confint(paral_lessons, level=0.95)
 
 ###############  Number of lessons effect on confidence #############################################################
 
@@ -204,7 +204,7 @@ scale_color_manual(values = c("#00AFBB", "#E7B800", "#CC0066", "#FF6666", "#9999
 themetiny=function(ggobject){
 
 ggobject+
-theme(plot.title = element_text(face="bold",size=15,hjust = 0.5))+
+theme(plot.title = element_text(face="bold",size=14,hjust = 0.5))+
 theme(axis.text=element_text(size=9,face="bold"),                                                                                                                                                 
 axis.title=element_text(size=10,face="bold"),
 legend.text=element_text(size=10))
@@ -251,7 +251,7 @@ perf_test1 <- ggplot(aes(x=number_lessons,y=prob),data=subset(predictions,test_c
   theme_classic()+
   theme(aspect.ratio=2.5)+
   scale_x_discrete(breaks=c(1,3,5,7),limits=c("1","", "3", "","5", "","7"))
-perf_test1 <- perf_test1 + ggtitle("Effect of the number of lessons on performance") + xlab("Number of lessons")+ylab("Accuracy")
+perf_test1 <- perf_test1 + ggtitle("Effect of the number of lessons on accuracy") + xlab("Number of lessons")+ylab("Accuracy")
 perf_test1 <- perf_test1 + guides(color=guide_legend("Number of lessons"))
 perf_test1 <-mycolors(perf_test1)
 perf_test1 <-themetiny(perf_test1)
@@ -270,7 +270,7 @@ perf_test2 <- ggplot(aes(x=number_lessons,y=prob),data=subset(predictions,test_c
   theme_classic()+
   theme(aspect.ratio=2.5)+
   scale_x_discrete(breaks=c(1,3,5,7),limits=c("1","", "3", "","5", "","7"))
-perf_test2 <- perf_test2 + ggtitle("Effect of the number of lessons on performance") + xlab("Number of lessons")+ylab("Accuracy")
+perf_test2 <- perf_test2 + ggtitle("Effect of number of lessons on accuracy") + xlab("Number of lessons")+ylab("Accuracy")
 perf_test2 <- perf_test2 + guides(color=guide_legend("Number of lessons"))
 perf_test2 <-mycolors(perf_test2)
 perf_test2 <-themetiny(perf_test2)
@@ -291,7 +291,7 @@ perf_test3 <- ggplot(aes(x=number_lessons,y=prob),data=subset(predictions,test_c
   scale_x_discrete(breaks=c(1,3,5,7),limits=c("1","", "3", "","5", "","7"))+
   scale_y_continuous( limits=c(0,1))
   
-perf_test3 <- perf_test3 + ggtitle("Effect of the number of lessons on performance") + xlab("Number of lessons")+ylab("Accuracy")
+perf_test3 <- perf_test3 + ggtitle("Effect of number of lessons on accuracy") + xlab("Number of lessons")+ylab("Accuracy")
 perf_test3 <- perf_test3 + guides(color=guide_legend("Number of lessons"))
 perf_test3 <-mycolors(perf_test3)
 perf_test3 <-themetiny(perf_test3)
@@ -321,7 +321,7 @@ ins <- ggplot(aes(x=number_lessons,y=prob),data=predict_insight)+
   scale_x_discrete(breaks=c(1,3,5,7),limits=c("1","", "3", "","5", "","7"))+     
   geom_point(size=3,aes(color=factor(number_lessons)))+
   theme_classic()
-ins <- ins + ggtitle("Effect of the number of lessons on insight report") + xlab("Number of lessons")+ylab("% insight reports")
+ins <- ins + ggtitle("Effect of number of lessons on insight report") + xlab("Number of lessons")+ylab("% insight reports")
 ins <- ins + guides(color=guide_legend("Number of lessons"))
 ins <- ins + theme(plot.title = element_text(face="bold",size=15,hjust = 0.5))
 ins <- themetiny(ins)
@@ -365,7 +365,7 @@ insac <- ggplot(aes(x=insight,y=prob),data=predict_ins)+
     scale_x_discrete(limits=c(0,1), labels=c("No insight", "insight"))
   ## scale_x_discrete(labels=c("0"="No insight", "1"="Insight"))
 insac <-themetiny(insac)
-insac <- insac + ggtitle("Insight") + xlab("Insight")+ylab("Accuracy")
+insac <- insac  + xlab("Insight report")+ylab("Accuracy")
 dev.new(width=7*0.65,height=4*0.65)
 insac
 
@@ -403,7 +403,7 @@ confac <- ggplot(aes(x=confidence, y=prob),data=predict_conf)+
 	geom_point(size=3)
 confac <- mycolors(confac)
 confac <-themetiny(confac)
-confac <- confac + ggtitle("Confidence") + xlab("Mean confidence")+ylab("Accuracy")
+confac <- confac +  xlab("Mean confidence rating")+ylab("Accuracy")
 confac <- confac + guides(color=guide_legend("Insight"))   
 dev.new(width=7*0.65,height=4*0.65)
 confac
