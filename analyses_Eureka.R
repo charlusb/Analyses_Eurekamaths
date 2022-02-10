@@ -33,8 +33,6 @@ perf_trends <- emtrends(lessons_perf,var="number_lessons",specs=c("test_conditio
 summary(perf_trends,infer=TRUE,null=0, adjust="holm")
 
 
-
-
 ###############################################  Effect of number of lessons on Insight reports ###################################################################
 
 insight_lessons <- glm(insight~number_lessons+math_edu, data=insight_bin,family=binomial)
