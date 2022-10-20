@@ -11,7 +11,6 @@ parts <- subset(parts, included==1 & number_lessons!=0)
 
 tests <- read.table("tests.csv", sep=";", header=T, dec=",")
 tests <- subset(tests, included==1 & number_lessons!=0)
-tests$test_condition <- relevel(as.factor(tests$test_condition), ref="Test1_non_circles")
 
 confidence <- read.table("confidence_ratings.csv", sep=";", header=T, dec=",")
 confidence <- subset(confidence, included==1 & number_lessons!=0)
@@ -21,11 +20,11 @@ insight <- read.table("insight_moments.csv", sep = ";", header=T)
 insight <- subset(insight, included==1 & number_lessons!=0)
 insight_bin <- read.table("insight_binary.csv", sep=";", header=T)
 insight_bin <- subset(insight_bin, included==1 & number_lessons!=0)
-
+insight_bin$insight <- as.factor(insight_bin$insight)
 
 ###### insight pendant la teaching phase
 insight_teach <- read.table("insight_lessons.csv", sep=";", header=T)
-insight_teach <- subset(insight_teach, included==1)
+insight_teach <- subset(insight_teach, included==1 & number_lessons!=0)
 
 
 #### insights pendant la deuxième partie de l'expé (tout sauf pré tests)
@@ -37,30 +36,42 @@ insights_post$response <- NULL
 
 
 ############################################## Effect of number of lessons on performance ########################################################################
-lessons_perf <- mixed(acc~number_lessons_n*test_condition+math_edu*test_condition+(1|participant), data=tests,family=binomial,check_contrasts=FALSE,method="LRT")
+
+#### centering numerical variables
+tests$number_lessons_n <- scale(tests$number_lessons, center=TRUE, scale=FALSE)
+tests$math_edu_n <- scale(tests$math_edu, center=TRUE, scale=FALSE)
+lessons_perf <- mixed(acc~number_lessons_n*test_condition+math_edu_n*test_condition+(1|participant), data=tests,family=binomial,check_contrasts=TRUE,method="LRT")
 lessons_perf
 
 ### Exploring the interaction between test condition and number of lessons: Linear trends by number of lessons in each test condition 
 
-perf_trends <- emtrends(lessons_perf,var="number_lessons",specs=c("test_condition"))
+perf_trends <- emtrends(lessons_perf,var="number_lessons_n",specs=c("test_condition"))
 summary(perf_trends,infer=TRUE,null=0, adjust="holm")
 
 
 ###############################################  Effect of number of lessons on Insight reports ###################################################################
-
-insight_lessons <- glm(insight~number_lessons+math_edu, data=insight_bin,family=binomial)
+insight_bin$number_lessons_n <- scale(insight_bin$number_lessons, center=TRUE, scale=FALSE)
+insight_bin$math_edu_n <- scale(insight_bin$math_edu, center=TRUE, scale=FALSE)  
+insight_lessons <- glm(insight~number_lessons_n+math_edu_n, data=insight_bin,family=binomial)
 Anova(insight_lessons, type="III")
 
 
 ################################### Relation between insight report and performance ####################################################
 
-#### data frames merging data about insight, confidence and performance 
+#### data frames merging data about insight, confidence and performance
+confidence$number_lessons_n <- scale(confidence$number_lessons, center=TRUE, scale=FALSE)
+confidence$math_edu_n <- scale(confidence$math_edu, center=TRUE, scale=FALSE)
+confidence$confidence_n <- scale(confidence$confidence, center=TRUE, scale=FALSE)
+conf_mean$number_lessons_n <- scale(conf_mean$number_lessons, center=TRUE, scale=FALSE)
+conf_mean$confidence_n <- scale(conf_mean$confidence, center=T, scale=F)
+conf_mean$math_edu_n <- scale(conf_mean$math_edu, center=TRUE, scale=FALSE)  
 conf_perf <- merge(tests, conf_mean)
 insight_perf <- merge(tests,insight_bin)
+insight_perf$insight <- as.factor(insight_perf$insight)
 confmeaninsight <- merge(conf_perf, insight_bin)
+confmeaninsight$insight <- as.factor(confmeaninsight$insight)
 
-
-perf_ins <- mixed(acc~insight*test_condition+ (1|participant), data=insight_perf,family=binomial,check_contrasts=FALSE,method="LRT")
+perf_ins <- mixed(acc~insight*test_condition+ (1|participant), data=insight_perf,family=binomial,check_contrasts=TRUE,method="LRT")
 perf_ins
 
 
@@ -72,8 +83,8 @@ confint(contrast(emmeans(perf_ins,~insight|test_condition,cov.reduce=F), "revpai
 
 ###############with covariates for Math edu  and Number of lessons  ####################################################################
 
-perf_ins_cov <- mixed(acc~test_condition*number_lessons+test_condition*insight+math_edu*test_condition +(1|participant), data=insight_perf,family=binomial,check_contrasts=F,method="LRT")
-perf_ins_cov
+perf_ins_cov <- mixed(acc~test_condition*number_lessons_n+test_condition*insight+math_edu_n*test_condition +(1|participant), data=insight_perf,family=binomial,check_contrasts=T,method="LRT")
+summary(perf_ins_cov)
 
 ### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on  accuracy by test condition
 
@@ -86,7 +97,7 @@ confint(contrast(emmeans(perf_ins_cov,~insight|test_condition,cov.reduce=F), "re
 
 ################ Correlation tests ######################################################################################################
 
-confcol<-dcast(participant+included+number_lessons+math_edu~measurement,value.var="confidence",data=confidence)
+confcol<-dcast(participant+included+number_lessons_n+math_edu_n~measurement,value.var="confidence",data=confidence_n)
 
 ### one separate df for pos3 confidence comparisons, as one data is missing for pos3.
 confinsight <- merge(confcol,insight_bin)
@@ -113,22 +124,22 @@ format(p.adjust(cory[3,], method="holm"),scientific=F)
 
 
 ### Correlations with math_edu and number of lessons as covariates
-pcor.test(confinsight$Pos1, confinsight$Pos2,list( confinsight$math_edu, confinsight$number_lessons), method="spearman")
-pcor.test(confinsight2$Pos1, confinsight2$Pos3,list( confinsight2$math_edu, confinsight2$number_lessons), method="spearman")
-pcor.test(confinsight2$Pos2, confinsight2$Pos3,list( confinsight2$math_edu, confinsight2$number_lessons), method="spearman")
-pcor.test(confinsight$Pos1, confinsight$insight,list( confinsight$math_edu, confinsight$number_lessons), method="spearman")
-pcor.test(confinsight$Pos2, confinsight$insight,list( confinsight$math_edu, confinsight$number_lessons), method="spearman")
-pcor.test(confinsight2$Pos3, confinsight2$insight,list( confinsight2$math_edu, confinsight2$number_lessons), method="spearman")
+pcor.test(confinsight$Pos1, confinsight$Pos2,list( confinsight$math_edu_n, confinsight$number_lessons), method="spearman")
+pcor.test(confinsight2$Pos1, confinsight2$Pos3,list( confinsight2$math_edu_n, confinsight2$number_lessons_n), method="spearman")
+pcor.test(confinsight2$Pos2, confinsight2$Pos3,list( confinsight2$math_edu_n, confinsight2$number_lessons_n), method="spearman")
+pcor.test(confinsight$Pos1, confinsight$insight,list( confinsight$math_edu_n, confinsight$number_lessons_n), method="spearman")
+pcor.test(confinsight$Pos2, confinsight$insight,list( confinsight$math_edu_n, confinsight$number_lessons_n), method="spearman")
+pcor.test(confinsight2$Pos3, confinsight2$insight,list( confinsight2$math_edu_n, confinsight2$number_lessons_n), method="spearman")
 
 
 #### p values corrected with holm
 cori <- cbind(
-pcor.test(confinsight$Pos1, confinsight$Pos2,list( confinsight$math_edu, confinsight$number_lessons), method="spearman")[,2],
-pcor.test(confinsight2$Pos1, confinsight2$Pos3,list( confinsight2$math_edu, confinsight2$number_lessons), method="spearman")[,2],
-pcor.test(confinsight2$Pos2, confinsight2$Pos3,list( confinsight2$math_edu, confinsight2$number_lessons), method="spearman")[,2],
-pcor.test(confinsight$Pos1, confinsight$insight,list( confinsight$math_edu, confinsight$number_lessons), method="spearman")[,2],
-pcor.test(confinsight$Pos2, confinsight$insight,list( confinsight$math_edu, confinsight$number_lessons), method="spearman")[,2],
-pcor.test(confinsight2$Pos3, confinsight2$insight,list( confinsight2$math_edu, confinsight2$number_lessons), method="spearman")[,2])
+pcor.test(confinsight$Pos1, confinsight$Pos2,list( confinsight$math_edu_n, confinsight$number_lessons_n), method="spearman")[,2],
+pcor.test(confinsight2$Pos1, confinsight2$Pos3,list( confinsight2$math_edu_n, confinsight2$number_lessons_n), method="spearman")[,2],
+pcor.test(confinsight2$Pos2, confinsight2$Pos3,list( confinsight2$math_edu_n, confinsight2$number_lessons_n), method="spearman")[,2],
+pcor.test(confinsight$Pos1, confinsight$insight,list( confinsight$math_edu_n, confinsight$number_lessons_n), method="spearman")[,2],
+pcor.test(confinsight$Pos2, confinsight$insight,list( confinsight$math_edu_n, confinsight$number_lessons_n), method="spearman")[,2],
+pcor.test(confinsight2$Pos3, confinsight2$insight,list( confinsight2$math_edu_n, confinsight2$number_lessons_n), method="spearman")[,2])
 format(p.adjust(cori, method="holm"), scientific=F)
 
 
@@ -136,8 +147,8 @@ format(p.adjust(cori, method="holm"), scientific=F)
 
 ########################### simple model #################################################################################
 
-perf_confs <- mixed(acc~test_condition*insight + confidence*test_condition+(1|participant), data=confmeaninsight,family=binomial,check_contrasts=F,method="LRT")
-perf_confs
+perf_confs <- mixed(acc~test_condition*insight + confidence_n*test_condition+(1|participant), data=confmeaninsight,family=binomial,check_contrasts=T,method="LRT")
+summary(perf_confs)
 
 ### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on  accuracy by test condition
 
@@ -146,21 +157,21 @@ confint(contrast(emmeans(perf_confs,~insight|test_condition,cov.reduce=F), "revp
 
 ### Effect of confidence (linear trends) on accuracy in each test condition 
 
-conf_trends <- emtrends(perf_confs,var="confidence",specs=c("test_condition"))
+conf_trends <- emtrends(perf_confs,var="confidence_n",specs=c("test_condition"))
 summary(conf_trends,infer=TRUE,null=0, adjust="holm")
 
 
 
-############ with covariates for Math edu  and Number of lessons #########################################################
+############ With covariates for Math edu  and Number of lessons #########################################################
 
-perf_confs_cov <- mixed(acc~test_condition*number_lessons+test_condition*insight+math_edu*test_condition + confidence*test_condition+(1|participant), data=confmeaninsight,family=binomial,
-check_contrasts=F,method="LRT")
-perf_confs_cov
+perf_confs_cov <- mixed(acc~test_condition*number_lessons_n+test_condition*insight+math_edu_n*test_condition + confidence_n*test_condition+(1|participant), data=confmeaninsight,family=binomial,
+check_contrasts=T,method="LRT")
+summary(perf_confs_cov)
 
 ### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on  accuracy by test condition
 
 contrast(emmeans(perf_confs_cov,~insight|test_condition,cov.reduce=F, rg.limit=10080), "revpairwise",simple=list("insight"), combine=T, adjust="holm")
-confint(contrast(emmeans(perf_confs_cov,~insight|test_condition,cov.reduce=F), "revpairwise",simple=list("insight"), combine=T, adjust="holm"))
+confint(contrast(emmeans(perf_confs_cov,~insight|test_condition,cov.reduce=F, rg.limit=10080), "revpairwise",simple=list("insight"), combine=T, adjust="holm"))
 
 ### Effect of confidence (linear trends) on accuracy in each  test condition 
 
@@ -168,7 +179,7 @@ conf_trends_cov <- emtrends(perf_confs_cov,var="confidence",specs=c("test_condit
 summary(conf_trends_cov,infer=T,null=0, adjust="holm")
 
 
-################ supplementary analyses #############################################################################
+################ Exploratory analyses #############################################################################
 
 ############### repartitions of insights by position in the experiment ###########################################################
 
@@ -180,19 +191,19 @@ parallel <- read.table("parallel_perf.csv", sep=";", header=T)
 parallel <- subset(parallel, number_lessons !=0 & included==1)
 
 #### pourcentage of correct answers
-para <- aggregate(acc~participant+number_lessons+math_edu, data=parallel, subset=included==1, FUN=mean)
+para <- aggregate(acc~participant+number_lessons_n+math_edu_n, data=parallel, subset=included==1, FUN=mean)
 mean(para$acc)
 ### 45.5% correct
 
 #### effect of number of lessons on parallel's answers
-paral_lessons <- glmer(acc~number_lessons+math_edu+(1|participant), data=parallel, family=binomial)
+paral_lessons <- glmer(acc~number_lessons_n+math_edu_n+(1|participant), data=parallel, family=binomial)
 summary(paral_lessons)
 confint(paral_lessons, level=0.95)
 
 ###############  Number of lessons effect on confidence #############################################################
 
 contrasts(confidence$measurement) = "contr.sum"
-conf_lessons <- mixed(confidence~number_lessons*measurement + math_edu*measurement+(1|participant), data=confidence,check_contrasts=F)
+conf_lessons <- mixed(confidence~number_lessons_n*measurement + math_edu_n*measurement+(1|participant), data=confidence_n,check_contrasts=F)
 conf_lessons
 
 slopes_conf <- emtrends(conf_lessons,var="number_lessons",specs=c("measurement"))
@@ -423,23 +434,23 @@ ggsave("conf_Test2_straight_nonplanar.pdf")
 
 ###############################################################################
 
-### supplementary analyses : analyses according previous insight
+### Supplementary analyses : analyses according previous insight (measure of insight for each test: insight before, yes/no)
 
 ################################### Relation between insight report and performance ####################################################
 
 #### data frames merging data about insight, confidence and performance
-### parts ayant eu un insight pendant les pré-tests
+### 
 insight_pre=subset(insight, select="participant", insight$position%in%c("planar_geometry", "straight_lines_on_spheres1") & insight$response==1)
 insight_pre=unique(insight_pre)
 
-### parts ayant eu insight avant tous les tests
+### parts with insight before lessons
 insight_lessons=subset(insight, select="participant",insight$position=="lessons" & insight$response==1)
 
-#### avant test2
+#### before test 2
 insight_test2=subset(insight, select="participant", insight$position%in%c("straight_lines_on_spheres2", "definition2") & insight$response==1)
 insight_test2 <- unique(insight_test2)
 
-### avant test3
+### before test 3
 insight_test3=subset(insight, select="participant", insight$position=="straight_lines_on_various_surfaces" & insight$response==1)
 
 
@@ -456,8 +467,15 @@ prev_ins$insight_bef[prev_ins$participant%in%insight_lessons$participant] <- 1
 prev_ins$insight_bef[(prev_ins$test=="Test2" | prev_ins$test=="Test3") & prev_ins$participant%in%insight_test2$participant] <- 1
 ## prev_ins$insight_bef[prev_ins$test=="Test3" & prev_ins$participant%in%insight_test2$participant] <- 1
 prev_ins$insight_bef[prev_ins$test=="Test3" & prev_ins$participant%in%insight_test3$participant] <- 1
+###### normalization
+prev_ins$number_lessons_n <- scale(prev_ins$number_lessons, center=TRUE, scale=FALSE)
+prev_ins$math_edu_n <- scale(prev_ins$math_edu, center=TRUE, scale=FALSE)          
 
 
+#### normalization
+conf_mean$number_lessons_n <- scale(conf_mean$number_lessons, center=TRUE, scale=FALSE)
+conf_mean$confidence_n <- scale(conf_mean$confidence, center=T, scale=F)
+conf_mean$math_edu_n <- scale(conf_mean$math_edu, center=TRUE, scale=FALSE)
 conf_perf <- merge(tests, conf_mean)
 confmeaninsight_bef <- conf_perf
 confmeaninsight_bef$insight_bef <- 0
@@ -467,11 +485,11 @@ confmeaninsight_bef$insight_bef[(confmeaninsight_bef$test=="Test2" | confmeanins
 confmeaninsight_bef$insight_bef[confmeaninsight_bef$test=="Test3" & confmeaninsight_bef$participant%in%insight_test3$participant] <- 1
 
 
-
 ###########################################
 #### effect of numb of lessons on insight
 
-insight_lessons_bef <- glm(insight_bef~number_lessons+math_edu, data=prev_ins,family=binomial)
+
+insight_lessons_bef <- glm(insight_bef~number_lessons_n+math_edu_n, data=prev_ins,family=binomial)
 Anova(insight_lessons_bef, type="III")
 
 
@@ -488,7 +506,7 @@ confint(contrast(emmeans(perf_ins_bef,~insight_bef|test_condition,cov.reduce=F),
 
 ###############with covariates for Math edu  and Number of lessons  ####################################################################
 
-perf_ins_cov_bef <- mixed(acc~test_condition*number_lessons+test_condition*insight_bef+math_edu*test_condition +(1|participant), data=prev_ins,family=binomial,check_contrasts=F,method="LRT")
+perf_ins_cov_bef <- mixed(acc~test_condition*number_lessons_n+test_condition*insight_bef+math_edu_n*test_condition +(1|participant), data=prev_ins,family=binomial,check_contrasts=F,method="LRT")
 perf_ins_cov_bef
 
 ### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on  accuracy by test condition
@@ -501,8 +519,13 @@ confint(contrast(emmeans(perf_ins_cov_bef,~insight_bef|test_condition,cov.reduce
 
 
 ################ Correlation tests ######################################################################################################
+#### data frames merging data about insight, confidence and performance
 
-confcol<-dcast(participant+included+number_lessons+math_edu~measurement,value.var="confidence",data=confidence)
+confidence$number_lessons_n <- scale(confidence$number_lessons, center=TRUE, scale=FALSE)
+confidence$math_edu_n <- scale(confidence$math_edu, center=TRUE, scale=FALSE)
+confidence$confidence_n <- scale(confidence$confidence, center=TRUE, scale=FALSE)
+
+confcol<-dcast(participant+included+number_lessons_n+math_edu_n~measurement,value.var="confidence_n",data=confidence)
 
 ### one separate df for pos3 confidence comparisons, as one data is missing for pos3.
 confinsight_bef <- merge(confcol,prev_ins)
@@ -552,7 +575,7 @@ format(p.adjust(cori, method="holm"), scientific=F)
 
 ########################### simple model #################################################################################
 
-perf_confs_bef <- mixed(acc~test_condition*insight_bef + confidence*test_condition+(1|participant), data=confmeaninsight_bef,family=binomial,check_contrasts=F,method="LRT")
+perf_confs_bef <- mixed(acc~test_condition*insight_bef + confidence_n*test_condition+(1|participant), data=confmeaninsight_bef,family=binomial,check_contrasts=F,method="LRT")
 perf_confs_bef
 
 ### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on  accuracy by test condition
@@ -562,21 +585,21 @@ confint(contrast(emmeans(perf_confs_bef,~insight_bef|test_condition,cov.reduce=F
 
 ### Effect of confidence (linear trends) on accuracy in each test condition 
 
-conf_trends <- emtrends(perf_confs_bef,var="confidence",specs=c("test_condition"))
+conf_trends_bef <- emtrends(perf_confs_bef,var="confidence_n",specs=c("test_condition"))
 summary(conf_trends_bef,infer=TRUE,null=0, adjust="holm")
 
 
 
 ############ with covariates for Math edu  and Number of lessons #########################################################
 
-perf_confs_cov_bef <- mixed(acc~test_condition*number_lessons+test_condition*insight_bef+math_edu*test_condition + confidence*test_condition+(1|participant), data=confmeaninsight_bef,family=binomial,
-check_contrasts=F,method="LRT")
+perf_confs_cov_bef <- mixed(acc~test_condition*number_lessons_n+test_condition*insight_bef+math_edu_n*test_condition + confidence_n*test_condition+(1|participant),
+data=confmeaninsight_bef,family=binomial, check_contrasts=F,method="LRT")
 perf_confs_cov_bef
 
 ### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on  accuracy by test condition
 
 contrast(emmeans(perf_confs_cov_bef,~insight_bef|test_condition,cov.reduce=F, rg.limit=10080), "revpairwise",simple=list("insight_bef"), combine=T, adjust="holm")
-confint(contrast(emmeans(perf_confs_cov_bef,~insight_bef|test_condition,cov.reduce=F), "revpairwise",simple=list("insight_bef"), combine=T, adjust="holm"))
+confint(contrast(emmeans(perf_confs_cov_bef,~insight_bef|test_condition,cov.reduce=F, rg.limit=10080), "revpairwise",simple=list("insight_bef"), combine=T, adjust="holm"))
 
 ### Effect of confidence (linear trends) on accuracy in each  test condition 
 
@@ -586,284 +609,3 @@ summary(conf_trends_cov_bef,infer=T,null=0, adjust="holm")
 
 
 
-###############################################################################
-
-#### supplementary analyses: analyses with insights during teaching phase only
-
-###############################################  Effect of number of lessons on Insight reports ###################################################################
-
-insight_main <- glm(ins_lessons~number_lessons+math_edu, data=insight_teach,family=binomial)
-Anova(insight_main, type="III")
-
-
-################################### Relation between insight report and performance ####################################################
-
-#### data frames merging data about insight, confidence and performance 
-conf_perf <- merge(tests, conf_mean)
-insight_perf_2 <- merge(tests,insight_teach)
-confmeaninsight_2 <- merge(conf_perf, insight_teach)
-
-
-perf_ins_2 <- mixed(acc~ins_lessons*test_condition+ (1|participant), data=insight_perf_2,family=binomial,check_contrasts=FALSE,method="LRT")
-perf_ins_2
-
-
-### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on accuracy by test condition
-
-contrast(emmeans(perf_ins_2,~ins_lessons|test_condition,cov.reduce=F), "revpairwise", combine=T, simple=list("ins_lessons"),adjust="holm")
-confint(contrast(emmeans(perf_ins_2,~ins_lessons|test_condition,cov.reduce=F), "revpairwise", combine=T, simple=list("ins_lessons"),adjust="holm"))
-
-
-###############with covariates for Math edu  and Number of lessons  ####################################################################
-
-perf_ins_cov_2 <- mixed(acc~test_condition*number_lessons+test_condition*ins_lessons+math_edu*test_condition +(1|participant), data=insight_perf_2,family=binomial,check_contrasts=F,method="LRT")
-perf_ins_cov_2
-
-### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on  accuracy by test condition
-
-contrast(emmeans(perf_ins_cov_2,~ins_lessons|test_condition,cov.reduce=F), "revpairwise", combine=T, simple=list("ins_lessons"), adjust="holm")
-confint(contrast(emmeans(perf_ins_cov_2,~ins_lessons|test_condition,cov.reduce=F), "revpairwise", combine=T, simple=list("ins_lessons"), adjust="holm"))
-
-
-################################### Relation between insight experiences and confspective judgments of confidence #################################################
-
-
-################ Correlation tests ######################################################################################################
-
-confcol<-dcast(participant+included+number_lessons+math_edu~measurement,value.var="confidence",data=confidence)
-
-### one separate df for pos3 confidence comparisons, as one data is missing for pos3.
-confinsight_2 <- merge(confcol,insight_teach)
-confinsight2_2=subset(confinsight_2, Pos3!="NA")                                                                                                                                                
-
-### simple correlations between each confidence measure and insight
-### not the same nb of df : one missing data point for conf 3
-cor.test(~Pos1+Pos2,data=confinsight_2, method="spearman")
-cor.test(~Pos1+Pos3,data=confinsight2_2, method="spearman")
-cor.test(~Pos2+Pos3,data=confinsight2_2, method="spearman") 
-cor.test(~Pos1+ins_lessons,data=confinsight_2, method="spearman") 
-cor.test(~Pos2+ins_lessons,data=confinsight_2, method="spearman")
-cor.test(~Pos3+ins_lessons,data=confinsight2_2, method="spearman")
-
-### p values corrected with holm 
-cory <- cbind(
-cor.test(~Pos1+Pos2,data=confinsight_2, method="spearman"),
-cor.test(~Pos1+Pos3,data=confinsight2_2, method="spearman"),
-cor.test(~Pos2+Pos3,data=confinsight2_2, method="spearman"), 
-cor.test(~Pos1+ins_lessons,data=confinsight_2, method="spearman"), 
-cor.test(~Pos2+ins_lessons,data=confinsight_2, method="spearman"),
-cor.test(~Pos3+ins_lessons,data=confinsight2_2, method="spearman"))
-format(p.adjust(cory[3,], method="holm"),scientific=F)   
-
-
-### Correlations with math_edu and number of lessons as covariates
-pcor.test(confinsight_2$Pos1, confinsight_2$Pos2,list( confinsight_2$math_edu, confinsight_2$number_lessons), method="spearman")
-pcor.test(confinsight2_2$Pos1, confinsight2_2$Pos3,list( confinsight2_2$math_edu, confinsight2_2$number_lessons), method="spearman")
-pcor.test(confinsight2_2$Pos2, confinsight2_2$Pos3,list( confinsight2_2$math_edu, confinsight2_2$number_lessons), method="spearman")
-pcor.test(confinsight_2$Pos1, confinsight_2$ins_lessons,list( confinsight_2$math_edu, confinsight_2$number_lessons), method="spearman")
-pcor.test(confinsight_2$Pos2, confinsight_2$ins_lessons,list( confinsight_2$math_edu, confinsight_2$number_lessons), method="spearman")
-pcor.test(confinsight2_2$Pos3, confinsight2_2$ins_lessons,list( confinsight2_2$math_edu, confinsight2_2$number_lessons), method="spearman")
-
-
-#### p values corrected with holm
-cori <- cbind(
-pcor.test(confinsight_2$Pos1, confinsight_2$Pos2,list( confinsight_2$math_edu, confinsight_2$number_lessons), method="spearman")[,2],
-pcor.test(confinsight2_2$Pos1, confinsight2_2$Pos3,list( confinsight2_2$math_edu, confinsight2_2$number_lessons), method="spearman")[,2],
-pcor.test(confinsight2_2$Pos2, confinsight2_2$Pos3,list( confinsight2_2$math_edu, confinsight2_2$number_lessons), method="spearman")[,2],
-pcor.test(confinsight_2$Pos1, confinsight_2$ins_lessons,list( confinsight_2$math_edu, confinsight_2$number_lessons), method="spearman")[,2],
-pcor.test(confinsight_2$Pos2, confinsight$ins_lessons,list( confinsight_2$math_edu, confinsight_2$number_lessons), method="spearman")[,2],
-pcor.test(confinsight2_2$Pos3, confinsight2_2$ins_lessons,list( confinsight2_2$math_edu, confinsight2_2$number_lessons), method="spearman")[,2])
-format(p.adjust(cori, method="holm"), scientific=F)
-
-
-########################## relation between confidence, insight and performance #####################################
-
-########################### simple model #################################################################################
-
-perf_confs_2 <- mixed(acc~test_condition*ins_lessons + confidence*test_condition+(1|participant), data=confmeaninsight_2,family=binomial,check_contrasts=F,method="LRT")
-perf_confs_2
-
-### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on  accuracy by test condition
-
-contrast(emmeans(perf_confs_2,~ins_lessons|test_condition,cov.reduce=F), "revpairwise",simple=list("ins_lessons"), combine=T, adjust="holm")
-confint(contrast(emmeans(perf_confs_2,~ins_lessons|test_condition,cov.reduce=F), "revpairwise",simple=list("ins_lessons"), combine=T, adjust="holm"))
-
-### Effect of confidence (linear trends) on accuracy in each test condition 
-
-conf_trends_2 <- emtrends(perf_confs_2,var="confidence",specs=c("test_condition"))
-summary(conf_trends_2,infer=TRUE,null=0, adjust="holm")
-
-############ with covariates for Math edu  and Number of lessons #########################################################
-
-perf_confs_cov_2 <- mixed(acc~test_condition*number_lessons+test_condition*ins_lessons+math_edu*test_condition + confidence*test_condition+(1|participant), data=confmeaninsight_2,family=binomial,
-check_contrasts=F,method="LRT")
-perf_confs_cov_2
-
-### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on  accuracy by test condition
-
-contrast(emmeans(perf_confs_cov_2,~ins_lessons|test_condition,cov.reduce=F), "revpairwise",simple=list("ins_lessons"), combine=T, adjust="holm")
-confint(contrast(emmeans(perf_confs_cov_2,~ins_lessons|test_condition,cov.reduce=F), "revpairwise",simple=list("ins_lessons"), combine=T, adjust="holm"))
-
-### Effect of confidence (linear trends) on accuracy in each  test condition 
-
-conf_trends_cov_2 <- emtrends(perf_confs_cov_2,var="confidence",specs=c("test_condition"))
-summary(conf_trends_cov_2,infer=T,null=0, adjust="holm")
-
-
-
-#####################################################################################################################
-
-################ Supplementary analyses with insight during teaching phase or post tests
-
-
-###############################################  Effect of number of lessons on Insight reports ###################################################################
-
-insight_p <- glm(insight~number_lessons+math_edu, data=insights_post,family=binomial)
-Anova(insight_p, type="III")
-
-
-################################### Relation between insight report and performance ####################################################
-
-#### data frames merging data about insight, confidence and performance 
-conf_perf <- merge(tests, conf_mean)
-insight_perf_p <- merge(tests,insights_post)
-confmeaninsight_p <- merge(conf_perf, insights_post)
-
-
-perf_ins_p <- mixed(acc~insight*test_condition+ (1|participant), data=insight_perf_p,family=binomial,check_contrasts=FALSE,method="LRT")
-perf_ins_p
-
-
-### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on accuracy by test condition
-
-contrast(emmeans(perf_ins_p,~insight|test_condition,cov.reduce=F), "revpairwise", combine=T, simple=list("insight"),adjust="holm")
-confint(contrast(emmeans(perf_ins_p,~insight|test_condition,cov.reduce=F), "revpairwise", combine=T, simple=list("insight"),adjust="holm"))
-
-
-###############with covariates for Math edu  and Number of lessons  ####################################################################
-
-perf_ins_cov_p <- mixed(acc~test_condition*number_lessons+test_condition*insight+math_edu*test_condition +(1|participant), data=insight_perf_p,family=binomial,check_contrasts=F,method="LRT")
-perf_ins_cov_p
-
-### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on  accuracy by test condition
-
-contrast(emmeans(perf_ins_cov_p,~insight|test_condition,cov.reduce=F), "revpairwise", combine=T, simple=list("insight"), adjust="holm")
-confint(contrast(emmeans(perf_ins_cov_p,~insight|test_condition,cov.reduce=F), "revpairwise", combine=T, simple=list("insight"), adjust="holm"))
-
-
-################################### Relation between insight experiences and confspective judgments of confidence #################################################
-
-
-################ Correlation tests ######################################################################################################
-
-confcol<-dcast(participant+included+number_lessons+math_edu~measurement,value.var="confidence",data=confidence)
-
-### one separate df for pos3 confidence comparisons, as one data is missing for pos3.
-confinsight_p <- merge(confcol,insights_post)
-confinsightp_p=subset(confinsight_p, Pos3!="NA")                                                                                                                                                
-
-### simple correlations between each confidence measure and insight
-### not the same nb of df : one missing data point for conf 3
-cor.test(~Pos1+Pos2,data=confinsight_p, method="spearman")
-cor.test(~Pos1+Pos3,data=confinsightp_p, method="spearman")
-cor.test(~Pos2+Pos3,data=confinsightp_p, method="spearman") 
-cor.test(~Pos1+insight,data=confinsight_p, method="spearman") 
-cor.test(~Pos2+insight,data=confinsight_p, method="spearman")
-cor.test(~Pos3+insight,data=confinsightp_p, method="spearman")
-
-### p values corrected with holm 
-cory <- cbind(
-cor.test(~Pos1+Pos2,data=confinsight_p, method="spearman"),
-cor.test(~Pos1+Pos3,data=confinsightp_p, method="spearman"),
-cor.test(~Pos2+Pos3,data=confinsightp_p, method="spearman"), 
-cor.test(~Pos1+insight,data=confinsight_p, method="spearman"), 
-cor.test(~Pos2+insight,data=confinsight_p, method="spearman"),
-cor.test(~Pos3+insight,data=confinsightp_p, method="spearman"))
-format(p.adjust(cory[3,], method="holm"),scientific=F)   
-
-
-### Correlations with math_edu and number of lessons as covariates
-pcor.test(confinsight_p$Pos1, confinsight_p$Pos2,list( confinsight_p$math_edu, confinsight_p$number_lessons), method="spearman")
-pcor.test(confinsightp_p$Pos1, confinsightp_p$Pos3,list( confinsightp_p$math_edu, confinsightp_p$number_lessons), method="spearman")
-pcor.test(confinsightp_p$Pos2, confinsightp_p$Pos3,list( confinsightp_p$math_edu, confinsightp_p$number_lessons), method="spearman")
-pcor.test(confinsight_p$Pos1, confinsight_p$insight,list( confinsight_p$math_edu, confinsight_p$number_lessons), method="spearman")
-pcor.test(confinsight_p$Pos2, confinsight_p$insight,list( confinsight_p$math_edu, confinsight_p$number_lessons), method="spearman")
-pcor.test(confinsightp_p$Pos3, confinsightp_p$insight,list( confinsightp_p$math_edu, confinsightp_p$number_lessons), method="spearman")
-
-
-#### p values corrected with holm
-cori <- cbind(
-pcor.test(confinsight_p$Pos1, confinsight_p$Pos2,list( confinsight_p$math_edu, confinsight_p$number_lessons), method="spearman")[,2],
-pcor.test(confinsightp_p$Pos1, confinsightp_p$Pos3,list( confinsightp_p$math_edu, confinsightp_p$number_lessons), method="spearman")[,2],
-pcor.test(confinsightp_p$Pos2, confinsightp_p$Pos3,list( confinsightp_p$math_edu, confinsightp_p$number_lessons), method="spearman")[,2],
-pcor.test(confinsight_p$Pos1, confinsight_p$insight,list( confinsight_p$math_edu, confinsight_p$number_lessons), method="spearman")[,2],
-pcor.test(confinsight_p$Pos2, confinsight_p$insight,list( confinsight_p$math_edu, confinsight_p$number_lessons), method="spearman")[,2],
-pcor.test(confinsightp_p$Pos3, confinsightp_p$insight,list( confinsightp_p$math_edu, confinsightp_p$number_lessons), method="spearman")[,2])
-format(p.adjust(cori, method="holm"), scientific=F)
-
-
-########################## relation between confidence, insight and performance #####################################
-
-########################### simple model #################################################################################
-
-perf_confs_p <- mixed(acc~test_condition*insight + confidence*test_condition+(1|participant), data=confmeaninsight_p,family=binomial,check_contrasts=F,method="LRT")
-perf_confs_p
-
-### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on  accuracy by test condition
-
-contrast(emmeans(perf_confs_p,~insight|test_condition,cov.reduce=F), "revpairwise",simple=list("insight"), combine=T, adjust="holm")
-confint(contrast(emmeans(perf_confs_p,~insight|test_condition,cov.reduce=F), "revpairwise",simple=list("insight"), combine=T, adjust="holm"))
-
-### Effect of confidence (linear trends) on accuracy in each test condition 
-
-conf_trends_p <- emtrends(perf_confs_p,var="confidence",specs=c("test_condition"))
-summary(conf_trends_p,infer=TRUE,null=0, adjust="holm")
-
-
-
-############ with covariates for Math edu  and Number of lessons #########################################################
-
-perf_confs_cov_p <- mixed(acc~test_condition*number_lessons+test_condition*insight+math_edu*test_condition + confidence*test_condition+(1|participant), data=confmeaninsight_p,family=binomial,
-check_contrasts=F,method="LRT")
-perf_confs_cov_p
-
-### Effect of insight (estimated contrast between participants who did vs. did not report an insight) on  accuracy by test condition
-
-contrast(emmeans(perf_confs_cov_p,~insight|test_condition,cov.reduce=F, rg.limit=10080), "revpairwise",simple=list("insight"), combine=T, adjust="holm")
-confint(contrast(emmeans(perf_confs_cov_p,~insight|test_condition,cov.reduce=F), "revpairwise",simple=list("insight"), combine=T, adjust="holm"))
-
-### Effect of confidence (linear trends) on accuracy in each  test condition 
-
-conf_trends_cov_p <- emtrends(perf_confs_cov_p,var="confidence",specs=c("test_condition"))
-summary(conf_trends_cov_p,infer=T,null=0, adjust="holm")
-
-
-################ supplementary analyses #############################################################################
-
-############### repartitions of insights by position in the experiment ###########################################################
-
-table(subset(insight, response==1)$position)
-
-############## Number of lessons effect on questions about parallel lines in test3 #################################
-
-parallel <- read.table("parallel_perf.csv", sep=";", header=T)
-parallel <- subset(parallel, number_lessons !=0 & included==1)
-
-#### pourcentage of correct answers
-para <- aggregate(acc~participant+number_lessons+math_edu, data=parallel, subset=included==1, FUN=mean)
-mean(para$acc)
-### 45.5% correct
-
-#### effect of number of lessons on parallel's answers
-paral_lessons <- glmer(acc~number_lessons+math_edu+(1|participant), data=parallel, family=binomial)
-summary(paral_lessons)
-confint(paral_lessons, level=0.95)
-
-###############  Number of lessons effect on confidence #############################################################
-
-contrasts(confidence$measurement) = "contr.sum"
-conf_lessons <- mixed(confidence~number_lessons*measurement + math_edu*measurement+(1|participant), data=confidence,check_contrasts=F)
-conf_lessons
-
-slopes_conf <- emtrends(conf_lessons,var="number_lessons",specs=c("measurement"))
-summary(slopes_conf,infer=T,null=0, adjust="holm")
