@@ -9,7 +9,7 @@ library(reshape2)
 parts <- read.table("participants.csv", sep=";", header=T, dec=",")
 parts <- subset(parts, included==1 & number_lessons!=0)
 
-tests <- read.table("tests_w_original_tore.csv", sep=";", header=T, dec=",")
+tests <- read.table("tests.csv", sep=";", header=T, dec=",")
 tests <- subset(tests, included==1 & number_lessons!=0)
 
 confidence <- read.table("confidence_ratings.csv", sep=";", header=T, dec=",")
@@ -35,26 +35,11 @@ insights_post$insight <- insights_post$response
 insights_post$response <- NULL
 
 
-
-
-################################################ centering numerical variables
-
-tests$number_lessons_n <- scale(tests$number_lessons, center=TRUE, scale=FALSE)
-tests$math_edu_n <- scale(tests$math_edu, center=TRUE, scale=FALSE)
-
-insight_bin$number_lessons_n <- scale(insight_bin$number_lessons, center=TRUE, scale=FALSE)
-insight_bin$math_edu_n <- scale(insight_bin$math_edu, center=TRUE, scale=FALSE)  
-
-confidence$number_lessons_n <- scale(confidence$number_lessons, center=TRUE, scale=FALSE)
-confidence$math_edu_n <- scale(confidence$math_edu, center=TRUE, scale=FALSE)
-confidence$confidence_n <- scale(confidence$confidence, center=TRUE, scale=FALSE)
-conf_mean$number_lessons_n <- scale(conf_mean$number_lessons, center=TRUE, scale=FALSE)
-conf_mean$confidence_n <- scale(conf_mean$confidence, center=T, scale=F)
-conf_mean$math_edu_n <- scale(conf_mean$math_edu, center=TRUE, scale=FALSE)  
-
-
 ############################################## Effect of number of lessons on performance ########################################################################
 
+#### centering numerical variables
+tests$number_lessons_n <- scale(tests$number_lessons, center=TRUE, scale=FALSE)
+tests$math_edu_n <- scale(tests$math_edu, center=TRUE, scale=FALSE)
 lessons_perf <- mixed(acc~number_lessons_n*test_condition+math_edu_n*test_condition+(1|participant), data=tests,family=binomial,check_contrasts=TRUE,method="LRT")
 lessons_perf
 
@@ -65,6 +50,8 @@ summary(perf_trends,infer=TRUE,null=0, adjust="holm")
 
 
 ###############################################  Effect of number of lessons on Insight reports ###################################################################
+insight_bin$number_lessons_n <- scale(insight_bin$number_lessons, center=TRUE, scale=FALSE)
+insight_bin$math_edu_n <- scale(insight_bin$math_edu, center=TRUE, scale=FALSE)  
 insight_lessons <- glm(insight~number_lessons_n+math_edu_n, data=insight_bin,family=binomial)
 Anova(insight_lessons, type="III")
 
@@ -72,6 +59,12 @@ Anova(insight_lessons, type="III")
 ################################### Relation between insight report and performance ####################################################
 
 #### data frames merging data about insight, confidence and performance
+confidence$number_lessons_n <- scale(confidence$number_lessons, center=TRUE, scale=FALSE)
+confidence$math_edu_n <- scale(confidence$math_edu, center=TRUE, scale=FALSE)
+confidence$confidence_n <- scale(confidence$confidence, center=TRUE, scale=FALSE)
+conf_mean$number_lessons_n <- scale(conf_mean$number_lessons, center=TRUE, scale=FALSE)
+conf_mean$confidence_n <- scale(conf_mean$confidence, center=T, scale=F)
+conf_mean$math_edu_n <- scale(conf_mean$math_edu, center=TRUE, scale=FALSE)  
 conf_perf <- merge(tests, conf_mean)
 insight_perf <- merge(tests,insight_bin)
 insight_perf$insight <- as.factor(insight_perf$insight)
