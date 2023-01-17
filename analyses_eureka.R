@@ -9,7 +9,7 @@ library(reshape2)
 parts <- read.table("participants.csv", sep=";", header=T, dec=",")
 parts <- subset(parts, included==1 & number_lessons!=0)
 
-tests <- read.table("tests_w_original_tore.csv", sep=";", header=T, dec=",")
+tests <- read.table("tests.csv", sep=";", header=T, dec=",")
 tests <- subset(tests, included==1 & number_lessons!=0)
 
 confidence <- read.table("confidence_ratings.csv", sep=";", header=T, dec=",")
@@ -184,7 +184,7 @@ confint(contrast(emmeans(perf_confs_cov,~insight|test_condition,cov.reduce=F, rg
 
 ### Effect of confidence (linear trends) on accuracy in each  test condition 
 
-conf_trends_cov <- emtrends(perf_confs_cov,var="confidence",specs=c("test_condition"))
+conf_trends_cov <- emtrends(perf_confs_cov,var="confidence_n",specs=c("test_condition"))
 summary(conf_trends_cov,infer=T,null=0, adjust="holm")
 
 
