@@ -24,17 +24,16 @@ confidence <- subset(confidence, participant%in%parts$participant)
 conf_mean <- aggregate(confidence~participant+number_lessons+math_edu+included, data=confidence, FUN=mean)
 
 eureka <- read.table("eureka_moments.csv", sep = ";", header=T)
-eureka <- subset(Eureka, participant%in%parts$participant)
+eureka <- subset(eureka, participant%in%parts$participant)
 eureka_bin <- read.table("eureka_binary.csv", sep=";", header=T)
 eureka_bin <- subset(eureka_bin, participant%in%parts$participant)
 
-#### A RENOMMER
-###### insight during teaching phase
+###### eurekas during teaching phase
 eureka_teach <- read.table("eureka_lessons.csv", sep=";", header=T)
 eureka_teach <- subset(eureka_teach, participant%in%parts$participant)
 
 
-#### insights during learning sessions+tests (everything except pre tests)
+#### eurekas during learning sessions+tests (everything except pre tests)
 eureka_post <- subset(eureka, participant%in%parts$participant)
 eureka_post <- subset(insight, !position%in%c("straight_lines_on_spheres1", "planar_geometry" ))
 eureka_post <- aggregate(response~participant+included+number_lessons+math_edu+lessons, data=eureka_post, FUN=max)
@@ -200,7 +199,7 @@ summary(conf_trends_cov,infer=T,null=0, adjust="holm")
 ################ supplementary analyses #############################################################################
 ############### repartitions of Eurekas by stage in the experiment ###########################################################
 
-table(subset(Eureka,response==1)$position)
+table(subset(eureka,response==1)$position)
 ### DANS LA VERSION PRECEDENTE, EUREKA N'ETAIT PAS RESTREINT AUX SUJETS INCLUS. VERIFIER QUE LES POURCENTAGES
 ### DONNES DANS L'ARTICLE CORRESPONDENT AUX SUJETS INCLUS
 
