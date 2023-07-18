@@ -1,0 +1,28 @@
+;Beta;Std Error;z value;Pr(>|z|);Pr(>|z|)
+Intercept (average of all test conditions);1,48;0,12;12,75;0,000;< .001
+NonCircles;1,42;0,27;5,29;0,000;< .001
+SmallCircles;2,34;0,40;5,89;0,000;< .001
+GreatCircles;-1,06;0,16;-6,47;0,000;< .001
+NonStraightNonPlanar;1,72;0,34;5,04;0,000;< .001
+NonStraightPlanar;-1,22;0,11;-10,68;0,000;< .001
+StraightNonPlanar;-2,24;0,12;-18,34;0,000;< .001
+StraightPlanar;0,85;0,24;3,47;0,001;< .001
+ReasoningSphere;-0,68;0,12;-5,49;0,000;< .001
+NumberLessons;0,18;0,05;3,49;0,000;< .001
+MathEducation;0,10;0,06;1,66;0,097;0,097
+NonCircles:NumberLessons;-0,06;0,12;-0,52;0,600;0,60
+SmallCircles:NumberLessons;-0,03;0,17;-0,16;0,872;0,87
+GreatCircles:NumberLessons;0,33;0,08;4,34;0,000;< .001
+NonStraightNonPlanar:NumberLessons;0,12;0,13;0,90;0,369;0,37
+NonStraightPlanar:NumberLessons;-0,01;0,05;-0,23;0,815;0,82
+StraightNonPlanar:NumberLessons;-0,15;0,05;-2,84;0,005;0,005
+StraightPlanar:NumberLessons;-0,15;0,11;-1,36;0,174;0,17
+ReasoningSphere:NumberLessons;-0,06;0,05;-1,16;0,246;0,25
+NonCircles:MathEducation;0,02;0,14;0,16;0,873;0,87
+SmallCircles:MathEducation;-0,20;0,20;-1,00;0,315;0,32
+GreatCircles:MathEducation;0,04;0,09;0,45;0,651;0,65
+NonStraightNonPlanar:MathEducation;0,30;0,17;1,76;0,078;0,078
+NonStraightPlanar:MathEducation;-0,13;0,06;-2,27;0,023;0,023
+StraightNonPlanar:MathEducation;0,00;0,06;-0,03;0,978;0,98
+StraightPlanar:MathEducation;-0,04;0,13;-0,32;0,750;0,75
+ReasoningSphere:MathEducation;0,00;0,06;-0,03;0,975;0,97

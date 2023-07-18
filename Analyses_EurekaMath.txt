@@ -1,0 +1,538 @@
+###################################################################
+
+###### July 7th, 2023 FINAL VERSION of Eureka paper analyses
+
+###################################################################
+
+library(afex)
+library(emmeans)
+library(ppcor)
+library(car)
+library(ggplot2)
+library(reshape2)
+
+
+parts <- read.table("participants.csv", sep=";", header=T, dec=",")
+# use this to exclude the participants who did not receive any lessons (main analyses)
+parts <- subset(parts, included==1 & number_lessons!=0) 
+# use this instead to include the participants who did not receive any lessons (supplementary analyses)
+# parts <- subset(parts, included==1) 
+
+tests <- read.table("tests.csv", sep=";", header=T, dec=",")
+tests <- subset(tests, participant%in%parts$participant)
+tests$test_condition <- relevel(as.factor(tests$test_condition), ref="Test1_non_circles")
+
+confidence <- read.table("confidence_ratings.csv", sep=";", header=T, dec=",")
+confidence <- subset(confidence, participant%in%parts$participant)
+conf_mean <- aggregate(confidence~participant+number_lessons+math_edu+included, data=confidence, FUN=mean)
+
+eureka <- read.table("eureka_moments.csv", sep = ";", header=T)
+eureka <- subset(eureka, participant%in%parts$participant)
+eureka_bin <- read.table("eureka_binary.csv", sep=";", header=T)
+eureka_bin <- subset(eureka_bin, participant%in%parts$participant)
+
+################################################ centering numerical variables on 0
+
+tests$number_lessons_n <- scale(tests$number_lessons, center=TRUE, scale=FALSE)
+tests$math_edu_n <- scale(tests$math_edu, center=TRUE, scale=FALSE)
+
+eureka_bin$number_lessons_n <- scale(eureka_bin$number_lessons, center=TRUE, scale=FALSE)
+eureka_bin$math_edu_n <- scale(eureka_bin$math_edu, center=TRUE, scale=FALSE)  
+
+confidence$number_lessons_n <- scale(confidence$number_lessons, center=TRUE, scale=FALSE)
+confidence$math_edu_n <- scale(confidence$math_edu, center=TRUE, scale=FALSE)
+confidence$confidence_n <- scale(confidence$confidence, center=TRUE, scale=FALSE)
+conf_mean$number_lessons_n <- scale(conf_mean$number_lessons, center=TRUE, scale=FALSE)
+conf_mean$confidence_n <- scale(conf_mean$confidence, center=TRUE, scale=FALSE)
+conf_mean$math_edu_n <- scale(conf_mean$math_edu, center=TRUE, scale=FALSE)  
+
+#### data frame merging data about eureka, confidence and performance
+
+conf_perf <- merge(tests, conf_mean)
+confmeaneureka <- merge(conf_perf, eureka_bin)
+confmeaneureka$eureka <- as.factor(confmeaneureka$eureka)
+
+
+############################################## Effect of number of lessons on performance ########################################################################
+
+lessons_perf <- mixed(acc~test_condition*number_lessons_n+test_condition*math_edu_n+(1|participant),
+	data=confmeaneureka, family=binomial, check_contrasts=T, expand_re=T, method="LRT",
+	control=glmerControl(optCtrl=list(maxfun=20000)))
+### need to increase nb of iterations for analysis with gr0
+lessons_perf
+
+#save(lessons_perf,file="lessons_perf.RData")
+load(file="lessons_perf.RData")
+
+### Exploring the interaction between test condition and number of lessons: 
+### Linear trends by number of lessons in each test condition 
+
+perf_trends <- emtrends(lessons_perf, var="number_lessons_n", specs=c("test_condition"))
+summary(perf_trends, infer=TRUE, null=0, adjust="holm")
+
+###############################################  Effect of number of lessons on Eureka reports ###################################################################
+
+eureka_lessons <- glm(eureka~number_lessons_n+math_edu_n, data=eureka_bin, family=binomial)
+Anova(eureka_lessons, type="III")
+## LogLikelyhood
+-eureka_lessons$deviance/2
+
+#save(eureka_lessons, file="eureka_lessons.RData")
+load(file="eureka_lessons.RData")
+
+################################### Relation between eureka report and performance ####################################################
+
+perf_eur <- mixed(acc~eureka*test_condition+(1|participant), data=confmeaneureka, family=binomial,
+	check_contrasts=TRUE, method="LRT")
+perf_eur
+
+### Effect of eureka (estimated contrast between participants who did vs. did not report an eureka)
+### on accuracy by test condition
+
+contrast(emmeans(perf_eur,~eureka|test_condition), "revpairwise", combine=T, simple=list("eureka"), adjust="holm")
+confint(contrast(emmeans(perf_eur,~eureka|test_condition), "revpairwise", combine=T, simple=list("eureka"), adjust="holm"))
+
+############### with covariates for Math edu  and Number of lessons  ####################################################################
+
+perf_eur_cov <- mixed(acc ~ test_condition*number_lessons_n + test_condition*math_edu_n
+	+ test_condition*eureka + (1|participant), data=confmeaneureka, family=binomial, 
+	check_contrasts=T, method="LRT", control=glmerControl(optCtrl=list(maxfun=20000)))
+perf_eur_cov
+
+### Effect of eureka (estimated contrast between participants who did vs. did not report an eureka)
+### on accuracy by test condition
+
+contrast(emmeans(perf_eur_cov,~eureka|test_condition), "revpairwise", combine=T, simple=list("eureka"), adjust="holm")
+confint(contrast(emmeans(perf_eur_cov,~eureka|test_condition), "revpairwise", combine=T, simple=list("eureka"), adjust="holm"))
+
+#save(list=c("perf_eur","perf_eur_cov"),file="perf_eur.RData")
+load(file="perf_eur.RData")
+
+
+
+################################### 4. Relation between eureka experiences and confidence #################################################
+
+################ Correlation tests ######################################################################################################
+
+confcol<-dcast(participant+included+number_lessons_n+math_edu_n~measurement,
+	value.var="confidence",data=confidence)
+
+### one separate df for pos3 confidence comparisons, as one data is missing for pos3.
+confeureka <- merge(confcol,eureka_bin)
+confeureka2=subset(confeureka, Pos3!="NA")                                                                                                                                                
+confeureka$eureka <- as.numeric(as.character(confeureka$eureka))
+confeureka2$eureka <- as.numeric(as.character(confeureka2$eureka))
+
+### simple correlations between each confidence measure and eureka
+### not the same nb of df : one missing data point for conf 3
+cor.test(~Pos1+Pos2,data=confeureka, method="spearman")
+cor.test(~Pos1+Pos3,data=confeureka2, method="spearman")
+cor.test(~Pos2+Pos3,data=confeureka2, method="spearman") 
+cor.test(~Pos1+eureka,data=confeureka, method="spearman") 
+cor.test(~Pos2+eureka,data=confeureka, method="spearman")
+cor.test(~Pos3+eureka,data=confeureka2, method="spearman")
+
+### p values corrected with holm 
+cory <- cbind(
+	cor.test(~Pos1+Pos2,data=confeureka, method="spearman"),
+	cor.test(~Pos1+Pos3,data=confeureka2, method="spearman"),
+	cor.test(~Pos2+Pos3,data=confeureka2, method="spearman"), 
+	cor.test(~Pos1+eureka,data=confeureka, method="spearman"), 
+	cor.test(~Pos2+eureka,data=confeureka, method="spearman"),
+	cor.test(~Pos3+eureka,data=confeureka2, method="spearman"))
+format(p.adjust(cory[3,], method="holm"),scientific=F)   
+
+
+### Correlations with math_edu and number of lessons as covariates
+pcor.test(confeureka$Pos1,confeureka$Pos2,list(confeureka$math_edu_n,confeureka$number_lessons), 	method="spearman")
+pcor.test(confeureka2$Pos1,confeureka2$Pos3,list(confeureka2$math_edu_n,confeureka2$number_lessons_n), 		method="spearman")
+pcor.test(confeureka2$Pos2,confeureka2$Pos3,list(confeureka2$math_edu_n,confeureka2$number_lessons_n), 	method="spearman")
+pcor.test(confeureka$Pos1,confeureka$eureka,list(confeureka$math_edu_n,confeureka$number_lessons_n), 	method="spearman")
+pcor.test(confeureka$Pos2,confeureka$eureka,list(confeureka$math_edu_n,confeureka$number_lessons_n), 		method="spearman")
+pcor.test(confeureka2$Pos3,confeureka2$eureka,list(confeureka2$math_edu_n,confeureka2$number_lessons_n), method="spearman")
+
+
+#### p values corrected with holm
+cori <- cbind(
+	pcor.test(confeureka$Pos1, confeureka$Pos2, 
+		list(confeureka$math_edu_n, confeureka$number_lessons_n), method="spearman")[,2],
+	pcor.test(confeureka2$Pos1, confeureka2$Pos3, 
+		list(confeureka2$math_edu_n, confeureka2$number_lessons_n), method="spearman")[,2],
+	pcor.test(confeureka2$Pos2, confeureka2$Pos3, 
+		list(confeureka2$math_edu_n, confeureka2$number_lessons_n), method="spearman")[,2],
+	pcor.test(confeureka$Pos1 ,confeureka$eureka, 
+		list(confeureka$math_edu_n, confeureka$number_lessons_n), method="spearman")[,2],
+	pcor.test(confeureka$Pos2, confeureka$eureka, 
+		list(confeureka$math_edu_n, confeureka$number_lessons_n), method="spearman")[,2], 
+	pcor.test(confeureka2$Pos3, confeureka2$eureka, 
+		list(confeureka2$math_edu_n, confeureka2$number_lessons_n), method="spearman")[,2])
+format(p.adjust(cori, method="holm"), scientific=F)
+
+
+########################## relation between confidence, eureka and performance #####################################
+
+########################### simple model #################################################################################
+
+perf_conf <- mixed(acc ~ test_condition*confidence_n + test_condition*eureka + (1|participant), 
+	data=confmeaneureka, family=binomial, check_contrasts=T, method="LRT")
+perf_conf
+
+### Effect of eureka (estimated contrast between participants who did vs. did not report an eureka) on  accuracy by test condition
+
+contrast(emmeans(perf_conf,~eureka|test_condition), "revpairwise", simple=list("eureka"), combine=T, adjust="holm")
+confint(contrast(emmeans(perf_conf,~eureka|test_condition), "revpairwise", simple=list("eureka"), combine=T, adjust="holm"))
+
+### Effect of confidence (linear trends) on accuracy in each test condition 
+
+conf_trends <- emtrends(perf_conf, var="confidence_n", specs=c("test_condition"), weight="equal")
+summary(conf_trends, infer=TRUE,null=0, adjust="holm")
+
+############ With covariates for Math education and Number of lessons #########################################################
+
+perf_conf_cov <- mixed(acc ~ test_condition*number_lessons_n + test_condition*math_edu_n + 
+	test_condition*confidence_n + test_condition*eureka + (1|participant), 
+	data=confmeaneureka, family=binomial, check_contrasts=T, method="LRT", 
+	control=glmerControl(optCtrl=list(maxfun=20000)))
+perf_conf_cov
+
+### Effect of eureka (estimated contrast between participants who did vs. did not report an eureka) on accuracy by test condition
+
+contrast(emmeans(perf_conf_cov,~eureka|test_condition), "revpairwise", simple=list("eureka"), combine=T, adjust="holm")
+confint(contrast(emmeans(perf_conf_cov,~eureka|test_condition), "revpairwise", simple=list("eureka"), combine=T, adjust="holm"))
+
+### Effect of confidence (linear trends) on accuracy in each test condition 
+
+conf_trends_cov <- emtrends(perf_conf_cov, var="confidence_n", specs=c("test_condition"), weight="equal")
+summary(conf_trends_cov, infer=T, null=0, adjust="holm")
+
+#save(list=c("perf_conf","perf_conf_cov"),file="perf_conf.RData")
+load(file="perf_conf.RData")
+
+
+
+######################################################################################################################### supplementary analyses #########################################################################################################
+
+############### distribution of Eurekas by stage in the experiment ###########################################################
+
+eureka$pos <- factor(eureka$position,
+	levels=c('definition1','planar_geometry','straight_lines_on_spheres1',
+	'lesson1','lesson2','lesson3','lesson4','lesson5','lesson6','lesson7',
+	'confidence1','straight_lines_on_spheres2','definition2','straight_lines_on_various_surfaces',
+	'confidence2','reasoning_about_straight_lines','confidence3','definition3'),
+	ordered=T)
+
+table(subset(eureka,response==1)$pos)
+table(eureka$pos<"straight_lines_on_spheres2",eureka$response)[,2]
+
+
+############## Number of lessons effect on questions about parallel lines in test3 #################################
+
+parallel <- read.table("parallel_perf.csv", sep=";", header=T)
+parallel <- subset(parallel, participant%in%parts$participant)
+parallel$number_lessons_n <- scale(parallel$number_lessons,center=TRUE,scale=FALSE)
+parallel$math_edu_n <- scale(parallel$math_edu,center=TRUE,scale=FALSE)
+
+### average accuracy
+para <- aggregate(acc~participant+number_lessons+math_edu, data=parallel, FUN=mean)
+mean(para$acc)
+### 45.5% correct
+
+### Effect of number of lessons
+paral_lessons <- mixed(acc~number_lessons_n+math_edu_n+(1|participant), data=parallel, family=binomial, method="LRT")
+paral_lessons
+
+summary(emtrends(paral_lessons,var="number_lessons_n"), infer=TRUE, null=0)
+
+#save(paral_lessons,file="paral_lessons.RData")
+load(file="paral_lessons.RData")
+
+
+###############  Number of lessons effect on confidence #############################################################
+
+conf_lessons <- mixed(confidence~number_lessons_n*measurement + math_edu_n*measurement + 
+	(1|participant), data=confidence, check_contrasts=T)
+conf_lessons
+
+slopes_conf <- emtrends(conf_lessons, var="number_lessons_n", specs=c("measurement"))
+summary(slopes_conf, infer=T, null=0, adjust="holm")
+
+edu_conf <- emtrends(conf_lessons, var="math_edu_n", specs=c("measurement"))
+summary(edu_conf, infer=T, null=0, adjust="holm")
+
+#save(conf_lessons,file="conf_lessons.RData")
+load(file="conf_lessons.RData")
+
+
+
+
+#################################################################################################################### Figures  #########################################################################################################
+####### aesthetic functions
+
+mycolors=function(ggobject){
+	ggobject + scale_color_manual(values = c("#9AE39A", "#E7B800", "#CC0066", 
+		"#FF6666", "#9999FF", "#D16103", "#FFDB6D"))
+	}
+
+themetiny=function(ggobject){
+	ggobject +
+		theme(plot.title = element_text(face="bold",size=11,hjust=0.5))+
+		theme(axis.text=element_text(size=8),
+			axis.title=element_text(size=10),
+			legend.text=element_text(size=10),
+			strip.background = element_blank())
+	}
+
+
+###### Figure 1: Effect of number of lessons on performance  ###############
+
+## Compute estimated means by teaching and test condition, at the average value of math_edu
+
+predictions <- data.frame(emmeans(lessons_perf, specs=c("number_lessons_n", "test_condition"), cov.reduce=F, type="response", at=list(math_edu_n=0)))
+
+predictions$number_lessons <- predictions$number_lessons_n+4
+
+predictions$test_condition = factor(predictions$test_condition, 
+	levels=c('Test1_non_circles', 'Test1_great_circles', 'Test1_small_circles',
+	'Test2_nonstraight_nonplanar', 'Test2_straight_planar', 
+	'Test2_nonstraight_planar', 'Test2_straight_nonplanar', 
+	'Test3_sphere', 'Test3_other_surfaces'), order=T)
+predictions=predictions[order(predictions$test_condition),]
+
+## Compute individual performance by test condition, corrected for education in mathematics
+
+all_plot=aggregate(acc~participant+number_lessons+number_lessons_n+test_condition+math_edu_n,
+	data=confmeaneureka, FUN=mean)
+all_plot$acclogit=logit(all_plot$acc, adjust=0.01)
+
+## trends by math education in each test condition
+edutrends <- data.frame(emtrends(lessons_perf, var="math_edu_n", specs=c("test_condition")))[,1:2]
+
+all_plot <- merge(all_plot,edutrends)
+
+## correct performance by effect of math eduction
+all_plot$acclogitcor=all_plot$acclogit-all_plot$math_edu_n*all_plot$math_edu_n.trend
+
+## transform back to response scale
+all_plot$acccor=exp(all_plot$acclogitcor)/(1+exp(all_plot$acclogitcor))
+
+all_plot$test_condition= factor(all_plot$test_condition, 
+	levels=c('Test1_non_circles', 'Test1_great_circles', 'Test1_small_circles', 
+	'Test2_nonstraight_nonplanar', 'Test2_straight_planar', 
+	'Test2_nonstraight_planar', 'Test2_straight_nonplanar', 
+	'Test3_sphere', 'Test3_other_surfaces'), order=T)
+all_plot=all_plot[order(all_plot$test_condition),]
+
+condtest1 = c("Test1_non_circles","Test1_small_circles","Test1_great_circles")
+perf_test1 <- ggplot(aes(x=number_lessons,y=prob),data=subset(predictions,test_condition%in%condtest1))+
+	geom_point(data=subset(all_plot,test_condition%in%condtest1),aes(y=acccor),
+		color="grey50",alpha=1/5,size=1.5,position=position_jitter(w=0.3,h=0))+
+	geom_errorbar(aes(ymin=asymp.LCL,ymax=asymp.UCL,color=factor(number_lessons)),
+		size=0.5,width=.4)+
+	geom_line(size=0.5)+
+	facet_grid(. ~ test_condition)+
+	geom_point(size=1.7,aes(color=factor(number_lessons)))+
+	theme_classic()+
+	theme(aspect.ratio=2.5)+
+	scale_x_discrete(breaks=c(1,3,5,7),limits=c("1","", "3", "","5", "","7"))+
+	ggtitle("Straight lines identification on spheres")+ 
+	xlab("Number of lessons")+
+	ylab("Accuracy")+
+	guides(color=guide_legend("Number of lessons"))+
+	scale_y_continuous(lim=c(0,1),breaks=seq(0,1,by=0.25),labels=c(0,25,50,75,'100%'))
+perf_test1 <-mycolors(perf_test1)
+perf_test1 <-themetiny(perf_test1)
+dev.new(width=8,height=2.8)
+perf_test1
+
+ggsave("number_lessons_on_perf_test1.jpg")
+
+
+condtest2 = c("Test2_nonstraight_nonplanar", "Test2_straight_planar",
+	"Test2_nonstraight_planar", "Test2_straight_nonplanar")
+perf_test2 <- ggplot(aes(x=number_lessons,y=prob),data=subset(predictions,test_condition%in%condtest2))+
+	geom_point(data=subset(all_plot,test_condition%in%condtest2),aes(y=acccor),
+		color="grey50",alpha=1/5,size=1.5,position=position_jitter(w=0.3,h=0))+
+	geom_errorbar(aes(ymin=asymp.LCL,ymax=asymp.UCL,color=factor(number_lessons)),
+		size=0.5,width=.4)+
+	geom_line(size=0.5)+
+	facet_grid( . ~ test_condition)+
+	geom_point(size=1.7,aes(color=factor(number_lessons)))+
+	theme_classic()+
+	theme(aspect.ratio=2.5)+
+	scale_x_discrete(breaks=c(1,3,5,7),limits=c("1","", "3", "","5", "","7"))+
+	ggtitle("Straight lines identification on various surfaces")+ 
+	xlab("Number of lessons")+
+	ylab("Accuracy")+
+	guides(color="none")+
+	scale_y_continuous(lim=c(0,1),breaks=seq(0,1,by=0.25),labels=c(0,25,50,75,'100%'))
+perf_test2 <-mycolors(perf_test2)
+perf_test2 <-themetiny(perf_test2)
+dev.new(width=8,height=2.8)
+perf_test2
+
+ggsave("number_lessons_on_perf_test2.jpg")
+
+
+condtest3 = c("Test3_sphere","Test3_other_surfaces")
+perf_test3 <- ggplot(aes(x=number_lessons,y=prob),data=subset(predictions,test_condition%in%condtest3))+
+	geom_point(data=subset(all_plot,test_condition%in%condtest3),aes(y=acccor),
+		color="grey50",alpha=1/5,size=1.5,position=position_jitter(w=0.3,h=0))+
+	geom_errorbar(aes(ymin=asymp.LCL,ymax=asymp.UCL,color=factor(number_lessons)),
+		size=0.5,width=.4)+
+	geom_line(size=0.5)+
+	facet_grid( . ~ test_condition)+
+	geom_point(size=1.7,aes(color=factor(number_lessons)))+
+	theme_classic()+
+	theme(aspect.ratio=2.5)+
+	scale_x_discrete(breaks=c(1,3,5,7),limits=c("1","", "3", "","5", "","7"))+
+	ggtitle("Reasoning about straight lines on the sphere and on various surfaces")+ 
+	xlab("Number of lessons")+
+	ylab("Accuracy")+
+	guides(color="none")+
+	scale_y_continuous(lim=c(0,1),breaks=seq(0,1,by=0.25),labels=c(0,25,50,75,'100%'))
+perf_test3 <-mycolors(perf_test3)
+perf_test3 <-themetiny(perf_test3)
+dev.new(width=8,height=2.8)
+perf_test3
+
+ggsave("number_lessons_on_perf_test3.jpg")
+
+
+###########################################################################################################################
+##### Figure 2: Number of lessons effect on eureka #################################################################################
+
+eureka_plot <- aggregate(eureka~participant+number_lessons_n+number_lessons+math_edu_n+math_edu, data=eureka_bin, FUN=mean)                                  
+
+## correcting eureka report for education in math                                   
+eureka_plot$eurlogit <- logit(eureka_plot$eureka, adjust=0.01)
+eureka_plot$eurcor <- eureka_plot$eurlogit - 
+	eureka_plot$math_edu_n*eureka_lessons$coefficients["math_edu_n"]
+eureka_plot$eurcor <- exp(eureka_plot$eurcor)/(1+exp(eureka_plot$eurcor))
+
+emm_Eureka <- emmeans(eureka_lessons,specs="number_lessons_n", cov.reduce=F,type="response")
+predict_Eureka <- data.frame(summary(emm_Eureka))
+predict_Eureka$number_lessons <- predict_Eureka$number_lessons_n+4
+
+eur <- ggplot(aes(x=number_lessons,y=prob),data=predict_Eureka)+
+	geom_point(data=eureka_plot,aes(y=eurcor),color="grey50",alpha=1/5,size=2,
+		position=position_jitter(w=0.3,h=0))+
+	geom_errorbar(aes(ymin=asymp.LCL,ymax=asymp.UCL,color=factor(number_lessons)),
+		size=0.5,width=0.3)+
+	geom_line(size=0.5)+
+	scale_x_discrete(breaks=c(1,3,5,7),limits=c("1","", "3", "","5", "","7"))+     
+	geom_point(size=2.5,aes(color=factor(number_lessons)))+
+	theme_classic()+
+	ggtitle("Effect of the number of lessons on Eureka reports")+ 
+	xlab("Number of lessons")+
+	ylab("Eureka reports")+
+	guides(color=guide_legend("Number of lessons"))+
+	scale_y_continuous(lim=c(0,1),breaks=seq(0,1,by=0.25),labels=c(0,25,50,75,'100%'))
+eur <- themetiny(eur)
+eur <- mycolors(eur)
+dev.new(width=5,height=3)
+eur
+
+ggsave("Numb_lessons_eff_on_Eureka.jpg")
+
+
+############################################################################################################################
+##### Figure 3: Eureka relation with accuracy in Test2 condition straight  non planar  lines
+############################################################################################################################
+
+## Compute estimated means with and without eureka for the Test2_straight_nonplanar condition,
+## averaging over all other variables (number of lessons, math education, confidence)
+predict_eur <- data.frame(emmeans(perf_conf_cov,specs=c("eureka"),
+	at=list(test_condition="Test2_straight_nonplanar"),type="response"))
+	
+## Compute individual performance for the Test2_straight_nonplanar test condition, corrected for # education in mathematics
+
+eur_plot=aggregate(acc~participant+eureka+number_lessons+number_lessons_n+test_condition+
+	math_edu+math_edu_n+confidence+confidence_n, 
+	data=subset(confmeaneureka,test_condition=="Test2_straight_nonplanar"), FUN=mean)
+eur_plot$acclogit=logit(eur_plot$acc, adjust=0.01)
+eur_plot$acclogitcor=eur_plot$acclogit
+
+## Compute individual performance corrected for number of lessons, education in mathematics
+# and confidence
+
+## trends in each test condition
+edutrends <- data.frame(emtrends(perf_conf_cov, var=c("math_edu_n"), specs=c("test_condition")))[,1:2]
+lessonstrends <- data.frame(emtrends(perf_conf_cov, var=c("number_lessons_n"), 
+	specs=c("test_condition")))[,1:2]
+conftrends <- data.frame(emtrends(perf_conf_cov, var=c("confidence_n"), 
+	specs=c("test_condition")))[,1:2]
+
+eur_plot <- merge(merge(merge(eur_plot,lessonstrends),edutrends),conftrends)
+
+## correct performance by number of lessons, math eduction and performance
+eur_plot$acclogitcor = eur_plot$acclogit - eur_plot$math_edu_n*eur_plot$math_edu_n.trend - 
+	eur_plot$number_lessons_n*eur_plot$number_lessons_n.trend - 
+	eur_plot$confidence_n*eur_plot$confidence_n.trend
+
+## transform back to response scale
+eur_plot$acccor=exp(eur_plot$acclogitcor)/(1+exp(eur_plot$acclogitcor))
+
+eurac <- ggplot(aes(x=eureka,y=prob),data=predict_eur)+
+	geom_point(data=eur_plot,aes(y=acccor,x=eureka),size=1.5,color="grey50",alpha=1/5, 		position=position_jitter(w=0.05,h=0))+
+	geom_errorbar(aes(ymin=asymp.LCL,ymax=asymp.UCL),size=0.5,width=.15)+
+	theme_classic()+
+	geom_point(size=2)+
+	xlab("Eureka report")+
+	ylab("Accuracy")+
+	scale_y_continuous(lim=c(0,1),breaks=seq(0,1,by=.25),labels=c(0,25,50,75,'100%')) 
+eurac <-themetiny(eurac)
+dev.new(width=3.2,height=1.8)
+eurac
+
+ggsave("eureka_Test2_straight_nonplanar.jpg")
+
+
+#####  Confidence relation with accuracy in condition Test2 non planar straigth lines, predictions + # individual performance with same corrections as figure above
+
+## Compute estimated means at each level of confidence for the Test2_straight_nonplanar condition,
+## averaging over all other variables (number of lessons, math education, eureka)
+predict_conf <- data.frame(emmeans(perf_conf_cov,~confidence_n, cov.reduce=F, weight="equal", 
+	at=list(test_condition="Test2_straight_nonplanar"), type="response"))
+predict_conf$confidence=predict_conf$confidence_n+mean(conf_mean$confidence)
+	
+## Compute individual performance for the Test2_straight_nonplanar test condition, corrected for # education in mathematics
+
+conf_plot=aggregate(acc~participant+eureka+number_lessons+number_lessons_n+test_condition+math_edu+
+	math_edu_n+confidence+confidence_n, 
+	data=subset(confmeaneureka,test_condition=="Test2_straight_nonplanar"), FUN=mean)
+conf_plot$acclogit=logit(conf_plot$acc, adjust=0.01)
+conf_plot$acclogitcor=conf_plot$acclogit
+
+## correct for number of lessons and math education
+conf_plot <- merge(merge(conf_plot,lessonstrends),edutrends)
+conf_plot$acclogitcor = conf_plot$acclogit - conf_plot$math_edu_n*conf_plot$math_edu_n.trend -
+	conf_plot$number_lessons_n*conf_plot$number_lessons_n.trend
+
+## eureka contrast
+eurcontrast <- subset(data.frame(contrast(emmeans(perf_conf_cov,~eureka+test_condition), "revpairwise", simple=c("eureka"))),select=c('test_condition','estimate'))
+names(eurcontrast)[2] <- "eureka_effect"
+eurcontrast$eureka_effect = eurcontrast$eureka_effect/2
+conf_plot <- merge(conf_plot,eurcontrast)
+conf_plot$eureka_n <- as.numeric(conf_plot$eureka)*2-3 # change values to -1 and +1
+conf_plot$acclogitcor = conf_plot$acclogitcor - conf_plot$eureka_n*conf_plot$eureka_effect
+
+## transform back to response scale
+conf_plot$acccor=exp(conf_plot$acclogitcor)/(1+exp(conf_plot$acclogitcor))
+
+
+confac <- ggplot(aes(x=confidence, y=prob),data=predict_conf)+
+	geom_point(data=conf_plot,aes(y=acccor, x=confidence),color="grey50",alpha=1/5,size=1.5,
+		position=position_jitter(w=0.05,h=0))+
+	geom_errorbar(aes(ymin=asymp.LCL,ymax=asymp.UCL),size=0.5,width=.15)+
+	geom_line(size=0.5)+
+	theme_classic()+
+	geom_point(size=2)+
+	xlab("Mean confidence rating")+ylab("Accuracy")+
+	guides(color=guide_legend("Eureka"))+
+	scale_y_continuous(lim=c(0,1),breaks=seq(0,1,by=.25),labels=c(0,25,50,75,'100%'))
+confac <- mycolors(confac)
+confac <-themetiny(confac)
+dev.new(width=3.2,height=1.8)
+confac
+     
+ggsave("conf_Test2_straight_nonplanar.jpg") 

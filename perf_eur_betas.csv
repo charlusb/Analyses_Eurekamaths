@@ -1,0 +1,38 @@
+;No covariate model;;Covariates model;
+;Beta;Std Error;Beta;Std Error
+Intercept (average of all variable levels);1,46;0,13;1,55;0,13
+NonCircles;1,41;0,26;1,34;0,28
+SmallCircles;2,60;0,50;2,72;0,56
+GreatCircles;-1,22;0,16;-1,17;0,18
+NonStraightNonPlanar;1,61;0,31;1,93;0,40
+NonStraightPlanar;-1,23;0,12;-1,29;0,13
+StraightNonPlanar;-2,38;0,13;-2,49;0,14
+StraightPlanar;1,04;0,28;0,94;0,29
+ReasoningSphere;-0,68;0,13;-0,75;0,14
+EurekaYes;0,00;0,13;0,13;0,13
+NumberLessons;;;0,19;0,05
+MathEducation;;;0,09;0,06
+EurekaYes:NonCircles;-0,09;0,26;-0,16;0,29
+EurekaYes:SmallCircles;0,59;0,50;0,75;0,53
+EurekaYes:GreatCircles;-0,48;0,16;-0,32;0,18
+EurekaYes:NonStraightNonPlanar;0,46;0,31;0,53;0,33
+EurekaYes:NonStraightPlanar;-0,12;0,12;-0,11;0,13
+EurekaYes:StraightNonPlanar;-0,53;0,13;-0,74;0,14
+EurekaYes:StraightPlanar;0,41;0,28;0,35;0,30
+EurekaYes:ReasoningSphere;-0,06;0,13;-0,11;0,14
+NonCircles:NumberLessons;;;-0,09;0,13
+SmallCircles:NumberLessons;;;0,09;0,18
+GreatCircles:NumberLessons;;;0,29;0,08
+NonStraightNonPlanar:NumberLessons;;;0,19;0,14
+NonStraightPlanar:NumberLessons;;;-0,02;0,05
+StraightNonPlanar:NumberLessons;;;-0,26;0,06
+StraightPlanar:NumberLessons;;;-0,10;0,12
+ReasoningSphere:NumberLessons;;;-0,08;0,06
+NonCircles:MathEducation;;;0,03;0,14
+SmallCircles:MathEducation;;;-0,25;0,21
+GreatCircles:MathEducation;;;0,06;0,09
+NonStraightNonPlanar:MathEducation;;;0,27;0,17
+NonStraightPlanar:MathEducation;;;-0,13;0,06
+StraightNonPlanar:MathEducation;;;0,05;0,07
+StraightPlanar:MathEducation;;;-0,06;0,13
+ReasoningSphere:MathEducation;;;0,00;0,07

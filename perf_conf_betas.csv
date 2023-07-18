@@ -1,0 +1,47 @@
+;No covariate model;;Covariates model;
+;Estimate;Std Error;Estimate;Std Error
+Intercept (average of all variable levels);1,77;0,00;1,94;0,00
+NonCircles;1,20;0,00;1,03;0,01
+SmallCircles;4,94;0,00;5,69;0,01
+GreatCircles;-1,50;0,00;-1,54;0,00
+NonStraightNonPlanar;1,32;0,00;1,53;0,00
+NonStraightPlanar;-1,55;0,00;-1,68;0,00
+StraightNonPlanar;-2,71;0,00;-2,89;0,00
+StraightPlanar;0,74;0,03;0,59;0,13
+ReasoningSphere;-0,99;0,00;-1,14;0,00
+EurekaYes;0,01;0,93;0,17;0,26
+Confidence;-0,16;0,21;-0,26;0,09
+NumberLessons;;;0,22;0,00
+MathEducation;;;0,12;0,08
+NonCircles:EurekaYes;-0,05;0,85;-0,20;0,50
+SmallCircles:EurekaYes;0,55;0,32;1,10;0,14
+GreatCircles:EurekaYes;-0,41;0,01;-0,33;0,09
+NonStraightNonPlanar:EurekaYes;0,47;0,13;0,48;0,16
+NonStraightPlanar:EurekaYes;-0,13;0,29;-0,16;0,28
+StraightNonPlanar:EurekaYes;-0,59;0,00;-0,80;0,00
+StraightPlanar:EurekaYes;0,37;0,19;0,29;0,35
+ReasoningSphere:EurekaYes;-0,07;0,59;-0,16;0,29
+NonCircles:Confidence;0,51;0,01;0,58;0,01
+SmallCircles:Confidence;-2,03;0,01;-2,25;0,03
+GreatCircles:Confidence;0,50;0,00;0,46;0,01
+NonStraightNonPlanar:Confidence;0,34;0,11;0,25;0,29
+NonStraightPlanar:Confidence;0,16;0,19;0,20;0,18
+StraightNonPlanar:Confidence;0,05;0,71;0,16;0,30
+StraightPlanar:Confidence;0,01;0,97;0,06;0,81
+ReasoningSphere:Confidence;0,15;0,24;0,20;0,21
+NonCircles:NumberLessons;;;-0,15;0,25
+SmallCircles:NumberLessons;;;0,29;0,33
+GreatCircles:NumberLessons;;;0,24;0,01
+NonStraightNonPlanar:NumberLessons;;;0,17;0,26
+NonStraightPlanar:NumberLessons;;;-0,04;0,51
+StraightNonPlanar:NumberLessons;;;-0,27;0,00
+StraightPlanar:NumberLessons;;;-0,09;0,47
+ReasoningSphere:NumberLessons;;;-0,09;0,16
+NonCircles:MathEducation;;;0,00;0,99
+SmallCircles:MathEducation;;;0,00;0,99
+GreatCircles:MathEducation;;;0,02;0,85
+NonStraightNonPlanar:MathEducation;;;0,23;0,19
+NonStraightPlanar:MathEducation;;;-0,16;0,03
+StraightNonPlanar:MathEducation;;;0,02;0,78
+StraightPlanar:MathEducation;;;-0,07;0,60
+ReasoningSphere:MathEducation;;;-0,03;0,72
